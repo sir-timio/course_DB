@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 import sqlite3 as sql
 
@@ -20,9 +20,10 @@ conn.executemany('''insert into DOCTOR values (?, ?, ?)
 ''', l)
 
 cursor = conn.execute('select id, name, age from DOCTOR')
+
 for row in cursor:
-   print(f"ID = {row[0]}")
-   print(f"NAME = {row[1]}")
+   print(f"ID = {row[0]}", end=' ')
+   print(f"NAME = {row[1]}", end=' ')
    print(f"AGE = {row[2]}")
    
 conn.close()

@@ -1,4 +1,5 @@
 import tkinter as tk
+from dataclass.model import Entity
 TK_SILENCE_DEPRECATION=1 
 H, W = 750, 750
 W_BIAS = 2800
@@ -16,6 +17,10 @@ def make_root():
 
 def load_add_frame():
     print('add menu')
+
+def insert(table, obj):
+    pass
+
 
 def load_main_frame(root):
     frame1 = tk.Frame(root, width=W, height=W, bg=BG)

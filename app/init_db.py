@@ -21,24 +21,9 @@ class SQLite():
         self.conn.commit()
         self.conn.close()
 
-with SQLite() as cur:
-    cur.execute(
-        '''create table stuff(
-        id             integer primary key,
-        name           text    not null,
-        surname        text    not null,
-        job            integer not null,
-        license        integer null,
-        phone          text    null,
-        birth_date     text    null,
-        interest_rate  real    null,
-        salary         integer null
-        );
-        ''')
 
 
 with SQLite() as cur:
-    cur.execute('pragma foreign_keys=ON;')
     cur.execute(
         '''
         create table qualification(

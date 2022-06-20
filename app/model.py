@@ -33,12 +33,11 @@ class Stuff(Entity):
         job: Job,
         name: str,
         surname: str,
-        id: int = None,
         license: str = None,
         phone: str = None,
-        birth_date: datetime = None,
+        salary: int = None,
         interest_rate: float = None,
-        salary: int = None
+        id: int = None,
     ) -> None:
 
         super().__init__()
@@ -54,7 +53,6 @@ class Stuff(Entity):
         else:
             raise Exception("Employee must have license")
         self.phone = phone
-        self.birth_date = birth_date
         self.interest_rate = interest_rate
         self.salary = salary
 

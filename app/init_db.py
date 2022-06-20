@@ -1,42 +1,20 @@
-#!/usr/bin/python3
+#!/usr/bin/python
 
 from datetime import datetime
+import psycopg2 as psql
+from config import config
 import os
-import sqlite3 as sql
-from dataclass.model import Stuff, Job, Entity,\
+from model import Stuff, Job, Entity,\
     Qualification, Specialization
 
-DB_PATH = '../data/clinic.db'
-if os.path.exists(DB_PATH):
-    os.remove(DB_PATH)
 
-class SQLite():
-    def __init__(self, file='../data/clinic.db'):
-        self.file=file
-    def __enter__(self):
-        self.conn = sql.connect(self.file)
-        self.conn.row_factory = sql.Row
-        return self.conn.cursor()
-    def __exit__(self, type, value, traceback):
-        self.conn.commit()
-        self.conn.close()
+def init_tables():
+    conn = psql.connect(**config)
+    with conn.cursor() as cur:
+        cur.execute(open('init_tables.sql', 'r').read())
+        conn.commit()
 
-
-
-with SQLite() as cur:
-    cur.execute(
-        '''
-        create table qualification(
-        id              integer primary key,
-        organization    text    not null,
-        specialization  integer not null,
-        date            text    null,
-        description     text    null,
-        stuff_id        integer not null,
-        foreign key (stuff_id) references stuff(id)
-        );
-        ''')
-
+init_tables()
         
     
 administrators = [
@@ -44,14 +22,14 @@ administrators = [
         job=Job.ADMINISTRATOR,
         name="Sasha",
         surname="Ivanova",
-        salary=60,
+        salary=60_000,
         phone="89637458777"
     ),
     Stuff(
         job=Job.ADMINISTRATOR,
         name="Masha",
         surname="Petrova",
-        salary=60,
+        salary=60_000,
         phone="89637398777"
     )
 ]
@@ -62,7 +40,7 @@ doctors = [
         name="Ivan",
         surname="Sergev",
         license="DOC123-5123",
-        salary=20,
+        salary=20_000,
         interest_rate=0.4,
         phone="89633258777"
     ),
@@ -71,7 +49,7 @@ doctors = [
         license="DOC123-4124",
         name="Lilya",
         surname="Oslo",
-        salary=20,
+        salary=20_000,
         interest_rate=0.4,
         phone="89637398777"
     )
@@ -83,7 +61,7 @@ nurses = [
         name="Olga",
         surname="Orlova",
         license="N412-232",
-        salary=50,
+        salary=50_000,
         phone="89633268237"
     ),
     Stuff(
@@ -91,7 +69,7 @@ nurses = [
         license="N412-664",
         name="Ksenia",
         surname="Frolova",
-        salary=50,
+        salary=50_000,
         phone="89698798745"
     )
 ]
@@ -102,50 +80,49 @@ qualifications = [
     Qualification(
         specialization=Specialization.ORTHODONTIST, 
         organization='Ural med', 
-        stuff_id=5,
+        stuff_id=3,
         date=datetime.now().date()
     ),
     Qualification(
         specialization=Specialization.SURGEON, 
         organization='Moscow med', 
-        stuff_id=10,
+        stuff_id=4,
         date=datetime.now().date()
     ),
 ]
 
-def get_insert_sql(entity: Entity):
+
+def insert(conn, entity: Entity):
     table_name = entity.__class__.__name__.lower()
-    s = f'insert into {table_name}'
+    query = f'insert into {table_name}'
     d = entity.get_data()
     fields = d.keys()
     values = list(d.values())
-    s += ' (' + ','.join(fields) + ')'
-    s += ' values (' + ','.join(['?'] * len(values)) + ')'
-    return s, values
+    query += ' (' + ','.join(fields) + ')'
+    query += ' values (' + ','.join(['%s'] * len(values)) + ')'
+    print(query)
+    print(values)
+    try:
+        with conn.cursor() as cur:
+            cur.execute(query, values)
+            conn.commit()
+        return 1
+    except Exception as ex:
+        conn.rollback()
+        print(f"Exeption in insert func: {ex} for table {table_name}")
+        return 0
 
 for st in stuff:
-    query, params = get_insert_sql(st)
-    with SQLite() as cur:
-        cur.execute(query, params)
+    conn = psql.connect(**config)
+    insert(conn, st)        
+    with psql.connect(**config).cursor() as cur:
+        cur.execute('select * from stuff')
+        # print(cur.fetchall())
 
-for qual in qualifications:
-    
-    query, params = get_insert_sql(qual)
-    print(params)
-    with SQLite() as cur:
-        cur.execute(query, params)
-
-
-with SQLite() as cur:
-    select = cur.execute('select * from stuff')
-    for row in select:
-        print(tuple(row))
-
-with SQLite() as cur:
-    select = cur.execute('select * from qualification')
-    for row in select:
-        print(tuple(row))
-with SQLite() as cur:
-    s = cur.execute('PRAGMA foreign_keys;')
-    for r in s:
-        print(tuple(r))
+for q in qualifications:
+    conn = psql.connect(**config)
+    insert(conn, q)
+    with psql.connect(**config).cursor() as cur:
+        cur.execute('select * from qualification')
+        print(cur.fetchall())
+        

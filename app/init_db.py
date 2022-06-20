@@ -1,8 +1,10 @@
 #!/usr/bin/python3
 
+from datetime import datetime
 import os
 import sqlite3 as sql
-from dataclass.model import Stuff, Specialization, Entity
+from dataclass.model import Stuff, Job, Entity,\
+    Qualification, Specialization
 
 DB_PATH = '../data/clinic.db'
 if os.path.exists(DB_PATH):
@@ -20,28 +22,48 @@ class SQLite():
         self.conn.close()
 
 with SQLite() as cur:
-    cur.execute('''create table stuff
-            (id            integer primary key,
-            name           text    not null,
-            surname        text    not null,
-            specialization integer not null,
-            license        integer null,
-            phone          text    null,
-            birth_date     text    null,
-            interest_rate  real    null,
-            salary         integer null
-            );''')
+    cur.execute(
+        '''create table stuff(
+        id             integer primary key,
+        name           text    not null,
+        surname        text    not null,
+        job            integer not null,
+        license        integer null,
+        phone          text    null,
+        birth_date     text    null,
+        interest_rate  real    null,
+        salary         integer null
+        );
+        ''')
 
+
+with SQLite() as cur:
+    cur.execute('pragma foreign_keys=ON;')
+    cur.execute(
+        '''
+        create table qualification(
+        id              integer primary key,
+        organization    text    not null,
+        specialization  integer not null,
+        date            text    null,
+        description     text    null,
+        stuff_id        integer not null,
+        foreign key (stuff_id) references stuff(id)
+        );
+        ''')
+
+        
+    
 administrators = [
     Stuff(
-        specialization=Specialization.ADMINISTRATOR,
+        job=Job.ADMINISTRATOR,
         name="Sasha",
         surname="Ivanova",
         salary=60,
         phone="89637458777"
     ),
     Stuff(
-        specialization=Specialization.ADMINISTRATOR,
+        job=Job.ADMINISTRATOR,
         name="Masha",
         surname="Petrova",
         salary=60,
@@ -51,7 +73,7 @@ administrators = [
 
 doctors = [
     Stuff(
-        specialization=Specialization.DOCTOR,
+        job=Job.DOCTOR,
         name="Ivan",
         surname="Sergev",
         license="DOC123-5123",
@@ -60,7 +82,7 @@ doctors = [
         phone="89633258777"
     ),
     Stuff(
-        specialization=Specialization.DOCTOR,
+        job=Job.DOCTOR,
         license="DOC123-4124",
         name="Lilya",
         surname="Oslo",
@@ -71,8 +93,8 @@ doctors = [
 ]
 
 nurses = [
-        Stuff(
-        specialization=Specialization.DOCTOR,
+    Stuff(
+        job=Job.DOCTOR,
         name="Olga",
         surname="Orlova",
         license="N412-232",
@@ -80,13 +102,30 @@ nurses = [
         phone="89633268237"
     ),
     Stuff(
-        specialization=Specialization.DOCTOR,
+        job=Job.DOCTOR,
         license="N412-664",
         name="Ksenia",
         surname="Frolova",
         salary=50,
         phone="89698798745"
     )
+]
+
+stuff = administrators + doctors + nurses
+
+qualifications = [
+    Qualification(
+        specialization=Specialization.ORTHODONTIST, 
+        organization='Ural med', 
+        stuff_id=5,
+        date=datetime.now().date()
+    ),
+    Qualification(
+        specialization=Specialization.SURGEON, 
+        organization='Moscow med', 
+        stuff_id=10,
+        date=datetime.now().date()
+    ),
 ]
 
 def get_insert_sql(entity: Entity):
@@ -99,18 +138,29 @@ def get_insert_sql(entity: Entity):
     s += ' values (' + ','.join(['?'] * len(values)) + ')'
     return s, values
 
-for stuff in administrators + doctors + nurses:
-    query, params = get_insert_sql(stuff)
+for st in stuff:
+    query, params = get_insert_sql(st)
     with SQLite() as cur:
         cur.execute(query, params)
 
-l = ("AAA", "AAA", 3)
+for qual in qualifications:
+    
+    query, params = get_insert_sql(qual)
+    print(params)
+    with SQLite() as cur:
+        cur.execute(query, params)
 
 
 with SQLite() as cur:
-    cur.execute('insert into stuff (name, surname, specialization) values (?, ?, ?)', l)
-
-with SQLite() as cur:
-    select = cur.execute('select id, name, surname, salary from stuff')
+    select = cur.execute('select * from stuff')
     for row in select:
         print(tuple(row))
+
+with SQLite() as cur:
+    select = cur.execute('select * from qualification')
+    for row in select:
+        print(tuple(row))
+with SQLite() as cur:
+    s = cur.execute('PRAGMA foreign_keys;')
+    for r in s:
+        print(tuple(r))

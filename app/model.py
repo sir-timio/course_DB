@@ -17,6 +17,7 @@ class Job(Enum):
     def __str__(self):
         return self.name
 
+
 class Specialization(Enum):
     ORTHODONTIST = 1
     THERAPIST = 2
@@ -26,10 +27,11 @@ class Specialization(Enum):
     def __str__(self):
         return self.name
 
-   
+
 class Stuff(Entity):
     def __init__(
         self,
+        id: int,
         job: Job,
         name: str,
         surname: str,
@@ -37,7 +39,6 @@ class Stuff(Entity):
         phone: str = None,
         salary: int = None,
         interest_rate: float = None,
-        id: int = None,
     ) -> None:
 
         super().__init__()
@@ -57,23 +58,31 @@ class Stuff(Entity):
         self.salary = salary
 
 
-
 class Qualification(Entity):
     def __init__(
         self,
+        id: int,
         specialization: Specialization,
         organization: str,
         stuff_id: int,
-        date: str = None,
+        date: datetime = None,
         description: str = None,
-        id: int = None
     ) -> None:
 
         super().__init__()
+        self.id = id
         self.specialization = specialization.value
         self.organization = organization
         self.stuff_id = stuff_id
         self.date = date
         self.description = description
-        self.id = id
+
+class Visit(Entity):
+    def __init__(
+        self,
+        patient_id: int,
+        stuff_id: int,
+        date: str = None
+    ) -> None:
+        super().__init__()
             

@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 from datetime import datetime
 import psycopg2 as psql
@@ -19,6 +19,7 @@ init_tables()
     
 administrators = [
     Stuff(
+        id=1,
         job=Job.ADMINISTRATOR,
         name="Sasha",
         surname="Ivanova",
@@ -26,6 +27,7 @@ administrators = [
         phone="89637458777"
     ),
     Stuff(
+        id=2,
         job=Job.ADMINISTRATOR,
         name="Masha",
         surname="Petrova",
@@ -36,6 +38,7 @@ administrators = [
 
 doctors = [
     Stuff(
+        id=5,
         job=Job.DOCTOR,
         name="Ivan",
         surname="Sergev",
@@ -45,6 +48,7 @@ doctors = [
         phone="89633258777"
     ),
     Stuff(
+        id=6,
         job=Job.DOCTOR,
         license="DOC123-4124",
         name="Lilya",
@@ -57,6 +61,7 @@ doctors = [
 
 nurses = [
     Stuff(
+        id = 3,
         job=Job.DOCTOR,
         name="Olga",
         surname="Orlova",
@@ -65,6 +70,7 @@ nurses = [
         phone="89633268237"
     ),
     Stuff(
+        id=4,
         job=Job.DOCTOR,
         license="N412-664",
         name="Ksenia",
@@ -80,13 +86,13 @@ qualifications = [
     Qualification(
         specialization=Specialization.ORTHODONTIST, 
         organization='Ural med', 
-        stuff_id=3,
+        stuff_id=5,
         date=datetime.now().date()
     ),
     Qualification(
         specialization=Specialization.SURGEON, 
         organization='Moscow med', 
-        stuff_id=4,
+        stuff_id=6,
         date=datetime.now().date()
     ),
 ]
@@ -109,9 +115,11 @@ def insert(conn, entity: Entity):
         return 1
     except Exception as ex:
         conn.rollback()
-        print(f"Exeption in insert func: {ex} for table {table_name}")
+        print(f"Exeption in insert: {ex} for table {table_name} with entity {entity}")
         return 0
 
+
+#add stuff
 for st in stuff:
     conn = psql.connect(**config)
     insert(conn, st)        
@@ -119,6 +127,7 @@ for st in stuff:
         cur.execute('select * from stuff')
         # print(cur.fetchall())
 
+#add qualification for doctors
 for q in qualifications:
     conn = psql.connect(**config)
     insert(conn, q)
@@ -126,3 +135,4 @@ for q in qualifications:
         cur.execute('select * from qualification')
         print(cur.fetchall())
         
+

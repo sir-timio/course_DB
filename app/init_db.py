@@ -10,93 +10,15 @@ from model import Stuff, Job, Entity,\
 
 def init_tables():
     conn = psql.connect(**config)
-    with conn.cursor() as cur:
-        cur.execute(open('init_tables.sql', 'r').read())
-        conn.commit()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(open('init_tables.sql', 'r').read())
+            conn.commit()
+    except Exception as ex:
+        print(f'Error in init tables: {ex}')
 
 init_tables()
-        
     
-administrators = [
-    Stuff(
-        id=1,
-        job=Job.ADMINISTRATOR,
-        name="Sasha",
-        surname="Ivanova",
-        salary=60_000,
-        phone="89637458777"
-    ),
-    Stuff(
-        id=2,
-        job=Job.ADMINISTRATOR,
-        name="Masha",
-        surname="Petrova",
-        salary=60_000,
-        phone="89637398777"
-    )
-]
-
-doctors = [
-    Stuff(
-        id=5,
-        job=Job.DOCTOR,
-        name="Ivan",
-        surname="Sergev",
-        license="DOC123-5123",
-        salary=20_000,
-        interest_rate=0.4,
-        phone="89633258777"
-    ),
-    Stuff(
-        id=6,
-        job=Job.DOCTOR,
-        license="DOC123-4124",
-        name="Lilya",
-        surname="Oslo",
-        salary=20_000,
-        interest_rate=0.4,
-        phone="89637398777"
-    )
-]
-
-nurses = [
-    Stuff(
-        id = 3,
-        job=Job.DOCTOR,
-        name="Olga",
-        surname="Orlova",
-        license="N412-232",
-        salary=50_000,
-        phone="89633268237"
-    ),
-    Stuff(
-        id=4,
-        job=Job.DOCTOR,
-        license="N412-664",
-        name="Ksenia",
-        surname="Frolova",
-        salary=50_000,
-        phone="89698798745"
-    )
-]
-
-stuff = administrators + doctors + nurses
-
-qualifications = [
-    Qualification(
-        specialization=Specialization.ORTHODONTIST, 
-        organization='Ural med', 
-        stuff_id=5,
-        date=datetime.now().date()
-    ),
-    Qualification(
-        specialization=Specialization.SURGEON, 
-        organization='Moscow med', 
-        stuff_id=6,
-        date=datetime.now().date()
-    ),
-]
-
 
 def insert(conn, entity: Entity):
     table_name = entity.__class__.__name__.lower()
@@ -119,20 +41,4 @@ def insert(conn, entity: Entity):
         return 0
 
 
-#add stuff
-for st in stuff:
-    conn = psql.connect(**config)
-    insert(conn, st)        
-    with psql.connect(**config).cursor() as cur:
-        cur.execute('select * from stuff')
-        # print(cur.fetchall())
-
-#add qualification for doctors
-for q in qualifications:
-    conn = psql.connect(**config)
-    insert(conn, q)
-    with psql.connect(**config).cursor() as cur:
-        cur.execute('select * from qualification')
-        print(cur.fetchall())
-        
 

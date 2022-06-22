@@ -3,7 +3,9 @@ drop table if exists qualification cascade;
 drop table if exists medical_card cascade;
 drop table if exists patient cascade;
 drop table if exists visit cascade;
-
+drop table if exists procedure cascade;
+drop table if exists price_list cascade;
+commit;
 
 create table stuff(
         id             int          primary key,
@@ -12,8 +14,8 @@ create table stuff(
         job            smallint     not null,
         license        varchar(50)  null unique,
         phone          varchar(15)  null,
-        interest_rate  real         null,
-        salary         numeric      null
+        interest_rate  real         not null default 0 check (interest_rate between 0 and 1),
+        salary         numeric      not null default 0 check (salary >= 0)
 );
 commit;
 
@@ -36,11 +38,6 @@ insert into stuff (id, name, surname, job, license, phone, salary, interest_rate
         (6, 'Lilya', 'Oslo', 3, 'DOC123-4124', '89637398777', 30000, 0.45);
 commit;
 
-insert into qualification
-
-
-insert into 
-
 
 create table qualification(
     id                serial        primary key,
@@ -53,6 +50,13 @@ create table qualification(
 );
 commit;
 
+
+insert into qualification (specialization, organization, stuff_id, date) values
+        (1, 'Moscow med', 5, '2012-02-03'),
+        (3, 'Kazan med', 6, '2015-07-19');
+commit;
+
+
 create table medical_card(
     id              int             primary key,
     sex             char(1)         not null check (sex in ('M', 'F')),
@@ -64,6 +68,7 @@ create table medical_card(
     medicines      text            null
 );
 commit;
+
 
 create table patient(
     id              int             primary key,
@@ -81,28 +86,57 @@ alter table patient
         add foreign key(id) references medical_card (id)
             DEFERRABLE INITIALLY DEFERRED;
 
+-- patients and med cards
 insert into patient values 
         (1, 'Pavel'),
         (2, 'Lera'),
         (3, 'Stepan');
+
 insert into medical_card values 
         (1, 'M', 'O+', '2001-02-10'),
         (2, 'F', 'A-', '2000-05-17'),
         (3, 'M', 'AB-', '1999-03-21');
 commit;
 
+
+create table price_list(
+    code        int             primary key,
+    price       numeric         not null check (price > 0)
+);
+commit;
+
+create table procedure(
+    id          serial          primary key,
+    code        int             not null,
+    location    smallint        null,
+    quantity    smallint        not null default 1 check (quantity > 0),
+    foreign key (code) references price_list(code)
+);
+commit;
+
+create table material(
+    id          int             primary key,
+    name        varchar(255)    not null,
+    price       numeric         not null check (price > 0),
+    quantity    smallint        not null default 1 check(quantity > 0)
+);
+commit;
+
 create table visit(
     id          serial          primary key,
     patient_id  int             not null,
     stuff_id    int             not null,
-    date        date            not null,
-    room        int             null,
+    date        date            not null default now(),
+    room        int             not null default 1,
     receipt     text            null,
+    material_id int             null,
     foreign key (patient_id) references patient(id),
     foreign key (stuff_id) references stuff(id)
 );
 commit;
 
+select * from qualification;
+-- select * from stuff;
 -- insert into visit (patient_id, stuff_id, date) values
 --         (1, 1, '2020-02-02'),
 --         (1, 2, '2020-03-03');

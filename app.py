@@ -1,5 +1,5 @@
 import tkinter as tk
-from dataclass.model import Entity
+from model import Entity
 TK_SILENCE_DEPRECATION=1 
 H, W = 750, 750
 W_BIAS = 2800

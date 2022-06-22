@@ -4,3 +4,4 @@ config = {
     'password': '123',
     'database': 'clinic'
 }
+ICON_PATH = 'imgs/icon.png'

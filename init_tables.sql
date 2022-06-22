@@ -5,39 +5,43 @@ drop table if exists patient cascade;
 drop table if exists visit cascade;
 drop table if exists procedure cascade;
 drop table if exists price_list cascade;
+dropt table if exists stuff_workdays cascade;
 commit;
 
 create table stuff(
-        id             int          primary key,
-        name           varchar(50)  not null,
-        surname        varchar(50)  not null,
-        job            smallint     not null,
-        license        varchar(50)  null unique,
-        phone          varchar(15)  null,
-        interest_rate  real         not null default 0 check (interest_rate between 0 and 1),
-        salary         numeric      not null default 0 check (salary >= 0)
+    id             int          primary key,
+    name           varchar(50)  not null,
+    surname        varchar(50)  not null,
+    job            smallint     not null,
+    license        varchar(50)  null unique,
+    phone          varchar(15)  null,
+    interest_rate  real         not null default 0 check (interest_rate between 0 and 1),
+    daily_salary   numeric      not null default 0 check (salary >= 0)
 );
 commit;
 
 -- administrators
-insert into stuff (id, name, surname, job, phone, salary) values
-        (1, 'Sasha', 'Dolya', 1, '89637458777', 60000),
-        (2, 'Masha', 'Florya', 1, '89637398777', 60000);
+insert into stuff (id, name, surname, job, phone, daily_salary) values
+        (1, 'Sasha', 'Dolya', 1, '89637458777', 2000),
+        (2, 'Masha', 'Florya', 1, '89637398777', 2000);
 commit;
 
 
 --nurses
 insert into stuff (id, name, surname, job, license, phone, salary) values
-        (3, 'Olya', 'Orlova', 2, 'N412-232', '89633268237', 50000),
-        (4, 'Ksenia', 'Frolova', 2, 'N412-664', '89698798745', 50000);
+        (3, 'Olya', 'Orlova', 2, 'N412-232', '89633268237', 2500),
+        (4, 'Ksenia', 'Frolova', 2, 'N412-664', '89698798745', 2500);
 commit;
 
 --doctors
 insert into stuff (id, name, surname, job, license, phone, salary, interest_rate) values
-        (5, 'Ivan', 'Sergev', 3, 'DOC123-5123', '89633258777', 30000, 0.4),
-        (6, 'Lilya', 'Oslo', 3, 'DOC123-4124', '89637398777', 30000, 0.45);
+        (5, 'Ivan', 'Sergev', 3, 'DOC123-5123', '89633258777', 3000, 0.4),
+        (6, 'Lilya', 'Oslo', 3, 'DOC123-4124', '89637398777', 3000, 0.45);
 commit;
 
+create table stuff_workdays(
+
+)
 
 create table qualification(
     id                serial        primary key,

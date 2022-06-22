@@ -1,43 +1,58 @@
 import tkinter as tk
+from tkinter import font as tkfont
 from model import Entity
 TK_SILENCE_DEPRECATION=1 
 H, W = 750, 750
 W_BIAS = 2800
 BG = "#02abe3"
-BTN_BG = "#000000"
+BTN_BG = "#121212"
 TITLE = "Clinic"
 
-def make_root():
-    root = tk.Tk()
-    root.title(TITLE)
-    root.eval("tk::PlaceWindow . center")
-    root.geometry(f"{H}x{W}-{W_BIAS}+0")
-    root.focus()
-    return root
+class App(tk.Tk):
+    def __init__(self, *args, **kwargs):
+        tk.Tk.__init__(self, *args, **kwargs)
+        self._frame = None
+        self.title_font = tkfont.Font(family='Helvetica', size=18, weight="bold", slant="italic")
+        self.eval("tk::PlaceWindow . center")
+        self.geometry(f"{H}x{W}-{W_BIAS}+0")
+        self.focus()
+        self.switch_frame(MainPage)
 
-def load_add_frame():
-    print('add menu')
+    def switch_frame(self, frame_class):
+        new_frame = frame_class(self)
+        if self._frame is not None:
+            self._frame.destroy()
+        self._frame = new_frame
+        self._frame.pack()
 
-def insert(table, obj):
-    pass
+
+class CalcPage(tk.Frame):
+    def __init__(self, master):
+        tk.Frame.__init__(self, master)
+        label = tk.Label(self, text='Рассчет зарплаты сотрудника')
+        label.pack(side='top', fill='x', pady=10)
+
+        go_main_button = tk.Button(
+            self, text='в главное меню',
+            command=lambda: master.switch_frame(MainPage)
+        )
+        go_main_button.pack(pady=20)
 
 
-def load_main_frame(root):
-    frame1 = tk.Frame(root, width=W, height=W, bg=BG)
-    frame1.grid(row=0, column=0)
-    frame1.pack_propagate(False)
+class MainPage(tk.Frame):
+    def __init__(self, master):
+        tk.Frame.__init__(self, master)
+        label = tk.Label(self, text='Главная страница')
+        label.pack(side='top', fill='x', pady=10)
+        
+        go_calc_button = tk.Button(
+            self, text='Перейти к калькулятору зарплат',
+            command=lambda: master.switch_frame(CalcPage)
+        )
+        go_calc_button.pack(pady=20)
 
-    tk.Button(
-        frame1,
-        text="add doctor",
-        font=("TkGeadingFont", 20),
-        bg=BTN_BG,
-        fg="white",
-        activebackground="black",
-        command=lambda: load_add_frame()
-    ).pack(pady=20)
+            
 
 if __name__ == '__main__':
-    root = make_root()
-    load_main_frame(root)
-    root.mainloop()
+    app = App()
+    app.mainloop()

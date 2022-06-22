@@ -60,14 +60,16 @@ commit;
 create table medical_card(
     id              int             primary key,
     sex             char(1)         not null check (sex in ('M', 'F')),
-    blood_type      nchar(3)        not null check (blood_type in ('O+', 'A+', 'B+', 'AB+',
-                                                       'O-', 'A-', 'B-', 'AB-')),
+    blood_type      nchar(3)        not null check (blood_type in (
+                                                                'O+', 'O-', 
+                                                                'A+', 'A-',
+                                                                'B+', 'B-',
+                                                                'AB+', 'AB-')),
     birth_date     date            not null,
     allergy        text            null,
     diseases       text            null,
     medicines      text            null
 );
-commit;
 
 
 create table patient(
@@ -76,7 +78,7 @@ create table patient(
     surname         varchar(50)     null,
     phone           varchar(15)     null
 );
-commit;
+
 
 alter table medical_card
         add foreign key(id) references patient (id)
@@ -85,6 +87,7 @@ alter table medical_card
 alter table patient
         add foreign key(id) references medical_card (id)
             DEFERRABLE INITIALLY DEFERRED;
+commit;
 
 -- patients and med cards
 insert into patient values 
@@ -101,43 +104,71 @@ commit;
 
 create table price_list(
     code        int             primary key,
+    name        varchar(255)    not null,
     price       numeric         not null check (price > 0)
+);
+
+create table visit(
+    id           int             primary key,
+    patient_id   int             not null,
+    date         date            not null default now(),
+    room         int             not null default 1,
+    receipt      text            null,
+    foreign key (patient_id) references patient(id)
+);
+commit;
+
+create table visit_stuff(
+    visit_id     int        not null,
+    stuff_id     int        not null,
+    foreign key(visit_id) references visit(id),
+    foreign key(stuff_id) references stuff(id),
+    unique(visit_id, stuff_id)
 );
 commit;
 
 create table procedure(
     id          serial          primary key,
+    visit_id    int             not null,
     code        int             not null,
-    location    smallint        null,
+    location    smallint        null check (location between 0 and 32),
     quantity    smallint        not null default 1 check (quantity > 0),
     foreign key (code) references price_list(code)
 );
 commit;
 
-create table material(
-    id          int             primary key,
-    name        varchar(255)    not null,
-    price       numeric         not null check (price > 0),
-    quantity    smallint        not null default 1 check(quantity > 0)
-);
+
+alter table procedure
+        add foreign key (visit_id) references visit(id);
 commit;
 
-create table visit(
-    id          serial          primary key,
-    patient_id  int             not null,
-    stuff_id    int             not null,
-    date        date            not null default now(),
-    room        int             not null default 1,
-    receipt     text            null,
-    material_id int             null,
-    foreign key (patient_id) references patient(id),
-    foreign key (stuff_id) references stuff(id)
-);
+insert into price_list values
+    (1, 'анестезия', 1000),
+    (2, 'удаление зуба', 2500),
+    (3, 'лечение кариеса', 3000),
+    (4, 'установка коронки', 5000);
 commit;
 
-select * from qualification;
--- select * from stuff;
--- insert into visit (patient_id, stuff_id, date) values
---         (1, 1, '2020-02-02'),
---         (1, 2, '2020-03-03');
--- commit;
+insert into visit(id, patient_id) values
+        (1, 1),
+        (2, 2),
+        (3, 1),
+        (4, 1);
+commit;
+
+insert into visit_stuff(visit_id, stuff_id) values
+        (1, 5),
+        (1, 4),
+        (2, 3),
+        (2, 4),
+        (2, 5);
+commit;
+
+insert into procedure (visit_id, code) values
+    (1, 1),
+    (1, 2),
+    (1, 3);
+insert into procedure (visit_id, code, quantity) values
+    (2, 1, 3),
+    (2, 2, 2);
+commit;

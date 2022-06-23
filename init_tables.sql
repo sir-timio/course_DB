@@ -1,3 +1,6 @@
+select 'drop table if exists "' || tablename || '" cascade;' from pg_tables;
+
+drop table if exists salary_job cascade;
 drop table if exists stuff cascade;
 drop table if exists qualification cascade;
 drop table if exists medical_card cascade;
@@ -9,43 +12,83 @@ drop table if exists stuff_workdays cascade;
 drop table if exists visit_stuff cascade;
 commit;
 
+create table salary_job(
+    job            int          primary key,
+    daily_salary   numeric      not null check (daily_salary > 0)  
+);
+commit;
+
+insert into salary_job values
+    (1, 2000),
+    (2, 2500),
+    (3, 3000);
+commit;
+
 create table stuff(
     id             int          primary key,
     name           varchar(50)  not null,
     surname        varchar(50)  not null,
-    job            smallint     not null,
+    job            int          not null,
     license        varchar(50)  null unique,
     phone          varchar(15)  null,
     interest_rate  real         not null default 0 check (interest_rate between 0 and 1),
-    daily_salary   numeric      not null default 0 check (daily_salary >= 0)
+    foreign key (job) references salary_job(job)
 );
 commit;
 
 -- administrators
-insert into stuff (id, name, surname, job, phone, daily_salary) values
-        (1, 'Sasha', 'Dolya', 1, '89637458777', 2000),
-        (2, 'Masha', 'Florya', 1, '89637398777', 2000);
+insert into stuff (id, name, surname, job, phone) values
+        (1, 'Sasha', 'Dolya', 1, '89637458777'),
+        (2, 'Masha', 'Florya', 1, '89637398777');
 commit;
 
 --nurses
-insert into stuff (id, name, surname, job, license, phone, daily_salary) values
-        (3, 'Olya', 'Orlova', 2, 'N412-232', '89633268237', 2500),
-        (4, 'Ksenia', 'Frolova', 2, 'N412-664', '89698798745', 2500);
+insert into stuff (id, name, surname, job, license, phone) values
+        (3, 'Olya', 'Orlova', 2, 'N412-232', '89633268237'),
+        (4, 'Ksenia', 'Frolova', 2, 'N412-664', '89698798745');
 commit;
 
 --doctors
-insert into stuff (id, name, surname, job, license, phone, daily_salary, interest_rate) values
-        (5, 'Ivan', 'Sergev', 3, 'DOC123-5123', '89633258777', 3000, 0.4),
-        (6, 'Lilya', 'Oslo', 3, 'DOC123-4124', '89637398777', 3000, 0.45);
+insert into stuff (id, name, surname, job, license, phone, interest_rate) values
+        (5, 'Ivan', 'Sergev', 3, 'DOC123-5123', '89633258777', 0.4),
+        (6, 'Lilya', 'Oslo', 3, 'DOC123-4124', '89637398777', 0.45);
 commit;
 
 create table stuff_workdays(
     stuff_id     int        not null,
     date         date       not null,
     unique(stuff_id, date),
-    foreign key(stuff_id) references stuff(id)
+    constraint fk_stuff
+        foreign key(stuff_id) references stuff(id)
 );
 commit;
+
+insert into stuff_workdays(stuff_id, date)
+select 1, * from generate_series('2022-06-01'::date, '2022-06-22'::date, '2 day'::interval);
+commit;
+
+
+insert into stuff_workdays(stuff_id, date)
+select 2, * from generate_series('2022-06-02'::date, '2022-06-23'::date, '2 day'::interval);
+commit;
+
+insert into stuff_workdays(stuff_id, date)
+select 3, * from generate_series('2022-06-01'::date, '2022-06-23'::date, '2 day'::interval);
+commit;
+
+insert into stuff_workdays(stuff_id, date)
+select 4, * from generate_series('2022-06-02'::date, '2022-06-23'::date, '2 day'::interval);
+commit;
+
+insert into stuff_workdays(stuff_id, date)
+select 5, * from generate_series('2022-06-01'::date, '2022-06-23'::date, '2 day'::interval);
+commit;
+
+
+insert into stuff_workdays(stuff_id, date)
+select 6, * from generate_series('2022-06-02'::date, '2022-06-23'::date, '2 day'::interval);
+commit;
+
 
 create table qualification(
     id                serial        primary key,
@@ -135,6 +178,32 @@ create table visit_stuff(
 );
 commit;
 
+
+select id, license from stuff where license is null;
+
+create or replace function check_stuff()
+    returns trigger
+as $check_stuff$
+begin
+    if not exists(select id, license from stuff where id=new.stuff_id and license is not null) then
+        raise exception 'Cannot hold a visit without medical license';
+    end if;
+    if not exists(
+        select date from visit where visit.id = new.visit_id
+        intersect
+        select date from stuff_workdays s where s.stuff_id=new.stuff_id
+    ) then
+        raise exception 'Stuff cannot hold a visit on a non-working day';
+    end if;
+    return new;
+end;
+$check_stuff$ language plpgsql;
+
+create trigger check_stuff before insert or update on visit_stuff
+    for each row execute function check_stuff();
+
+-- select license from stuff;
+
 create table procedure(
     id          serial          primary key,
     visit_id    int             not null,
@@ -157,20 +226,20 @@ insert into price_list values
     (4, 'установка коронки', 5000);
 commit;
 
-insert into visit(id, patient_id) values
-        (1, 1),
-        (2, 2),
-        (3, 1),
-        (4, 1);
+insert into visit(id, patient_id, date) values
+        (1, 1, '2022-06-01'),
+        (2, 2, '2022-06-02'),
+        (3, 1, '2022-06-03'),
+        (4, 1, '2022-06-04');
 commit;
 
 insert into visit_stuff(visit_id, stuff_id) values
-        (1, 5),
-        (1, 4),
-        (2, 3),
-        (2, 4),
-        (2, 5);
+        (1, 5), --06-01: 3, 5
+        (1, 3), 
+        (2, 4),  -- 06-02: 4, 6
+        (2, 6);
 commit;
+
 
 insert into procedure (visit_id, code) values
     (1, 1),
@@ -180,3 +249,9 @@ insert into procedure (visit_id, code, quantity) values
     (2, 1, 3),
     (2, 2, 2);
 commit;
+
+
+-- select * from stuff_workdays;
+-- select * from stuff s inner join salary_job j on j.job =s.job 
+
+select * from visit v inner join visit_stuff s on v.id = s.visit_id left join stuff_workdays w on s.stuff_id = w.stuff_id and w.date = v.date;

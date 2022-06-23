@@ -63,6 +63,7 @@ class CalcPage(tk.Frame):
             command=lambda: master.switch_frame(MainPage)
         )
         go_main_button.pack(pady=10)
+
         
 
 

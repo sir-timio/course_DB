@@ -12,44 +12,49 @@ drop table if exists stuff_workdays cascade;
 drop table if exists visit_stuff cascade;
 commit;
 
-create table salary_job(
-    job            int          primary key,
-    daily_salary   numeric      not null check (daily_salary > 0)  
+create table job(
+    id         int           primary key,
+    daily_salary   numeric       not null check (daily_salary > 0),
+    job_name       varchar(100) not null
 );
 commit;
 
-insert into salary_job values
-    (1, 2000),
-    (2, 2500),
-    (3, 3000);
+
+
+insert into job values
+    (1, 2000, 'Admin'),
+    (2, 2500, 'Nurse'),
+    (3, 3000, 'Doctor');
 commit;
+
 
 create table stuff(
     id             int          primary key,
     name           varchar(50)  not null,
     surname        varchar(50)  not null,
-    job            int          not null,
+    job_id         int          not null,
     license        varchar(50)  null unique,
     phone          varchar(15)  null,
     interest_rate  real         not null default 0 check (interest_rate between 0 and 1),
-    foreign key (job) references salary_job(job)
+    foreign key (job_id) references job(id),
+    unique (name, surname, job_id)
 );
 commit;
 
 -- administrators
-insert into stuff (id, name, surname, job, phone) values
+insert into stuff (id, name, surname, job_id, phone) values
         (1, 'Sasha', 'Dolya', 1, '89637458777'),
         (2, 'Masha', 'Florya', 1, '89637398777');
 commit;
 
 --nurses
-insert into stuff (id, name, surname, job, license, phone) values
+insert into stuff (id, name, surname, job_id, license, phone) values
         (3, 'Olya', 'Orlova', 2, 'N412-232', '89633268237'),
         (4, 'Ksenia', 'Frolova', 2, 'N412-664', '89698798745');
 commit;
 
 --doctors
-insert into stuff (id, name, surname, job, license, phone, interest_rate) values
+insert into stuff (id, name, surname, job_id, license, phone, interest_rate) values
         (5, 'Ivan', 'Sergev', 3, 'DOC123-5123', '89633258777', 0.4),
         (6, 'Lilya', 'Oslo', 3, 'DOC123-4124', '89637398777', 0.45);
 commit;
@@ -100,7 +105,6 @@ create table qualification(
             foreign key(stuff_id) references stuff(id)
 );
 commit;
-
 
 insert into qualification (specialization, organization, stuff_id, date) values
         (1, 'Moscow med', 5, '2012-02-03'),
@@ -251,7 +255,7 @@ insert into procedure (visit_id, code, quantity) values
 commit;
 
 
--- select * from stuff_workdays;
+select * from job;
 -- select * from stuff s inner join salary_job j on j.job =s.job 
 
-select * from visit v inner join visit_stuff s on v.id = s.visit_id left join stuff_workdays w on s.stuff_id = w.stuff_id and w.date = v.date;
+-- select * from visit v inner join visit_stuff s on v.id = s.visit_id left join stuff_workdays w on s.stuff_id = w.stuff_id and w.date = v.date;

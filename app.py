@@ -1,11 +1,16 @@
 import tkinter as tk
-from tkinter import ttk
-from tkinter import Label, font as tkfont
+from tkinter import Button, OptionMenu, ttk, Label
+from tkinter import font as tkfont
+import psycopg2 as psql
 
-from matplotlib.pyplot import title
+from tkinter import StringVar
+
 from config import ICON_PATH
 from PIL import ImageTk, Image
-from model import Entity
+from model import Entity, Stuff
+
+from config import config
+
 TK_SILENCE_DEPRECATION=1 
 H, W = 750, 750
 W_BIAS = 2800
@@ -17,6 +22,7 @@ class App(tk.Tk):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # tk.Tk.__init__(self, *args, **kwargs)
+        self.config = config
         self._frame = None
         self.title_font = tkfont.Font(family='Helvetica', size=18, weight="bold", slant="italic")
         self.eval("tk::PlaceWindow . center")
@@ -32,6 +38,7 @@ class App(tk.Tk):
             self._frame.destroy()
         self._frame = new_frame
         self._frame.pack()
+    
 
 
 class MainPage(tk.Frame):
@@ -63,8 +70,44 @@ class CalcPage(tk.Frame):
             command=lambda: master.switch_frame(MainPage)
         )
         go_main_button.pack(pady=10)
+        stuff = get_table(conn=get_connection(), cls=Stuff)
+        names = [s.get_name() for s in stuff]
+        clicked = StringVar() 
+        clicked.set(names[0])
 
-        
+        drop = OptionMenu(self, clicked, *names)
+        drop.pack()
+        label = Label(self, text=' ')
+
+        button = Button(self, text='Выбрать сотрудника', command=lambda: label.config(text=clicked.get())).pack()
+        label.pack()
+
+
+
+def get_connection(config=config):
+    try:
+        conn = psql.connect(**config)
+        return conn
+    except Exception as ex:
+        print(f'Cannot connect: {ex}')
+        return None
+
+def get_table(conn, cls):
+    conn = get_connection()
+    table_name = cls.__name__.lower()
+    query = f'select * from {table_name}'
+    try:
+        with conn.cursor() as cur:
+            cur.execute(query)
+            conn.commit()
+            rows = cur.fetchall()
+            entities = [cls(*r) for r in rows]
+            return entities
+    except Exception as ex:
+        conn.rollback()
+        print(f"Exeption select: {ex} for table {table_name}")
+        return None
+
 
 
             

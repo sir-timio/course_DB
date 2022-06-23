@@ -8,14 +8,31 @@ class Entity:
     def get_data(self):
         return dict((k, v) for k, v in self.__dict__.items() if v is not None)
 
-from enum import Enum
-class Job(Enum):
-    ADMINISTRATOR = 1
-    NURSE = 2
-    DOCTOR = 3
 
-    def __str__(self):
-        return self.name
+from enum import Enum
+class Job(Entity):
+    def __init__(
+        self,
+        id: int,
+        daily_salary: float,
+        job_name: str,
+    ) -> None:
+
+        super().__init__()
+        self.id = int(id)
+        self.daily_salary = float(daily_salary)
+        self.job_name = str(job_name)
+
+    def get_name(self):
+        return self.job_name
+
+
+# create table job(
+#     id         int           primary key,
+#     daily_salary   numeric       not null check (daily_salary > 0),
+#     job_name       varchar(100) not null
+# );
+# commit;
 
 
 class Specialization(Enum):
@@ -32,32 +49,27 @@ class Stuff(Entity):
     def __init__(
         self,
         id: int,
-        job: Job,
         name: str,
         surname: str,
+        job: int,
         license: str = None,
         phone: str = None,
-        salary: int = None,
         interest_rate: float = None,
     ) -> None:
 
         super().__init__()
-        self.id = id
-        self.name = name
-        self.surname = surname
-        self.job = job.value
+        self.id = int(id)
+        self.name = str(name)
+        self.surname = str(surname)
+        self.job = int(job)
 
-        if self.job in [Job.ADMINISTRATOR.value]:
-            self.license = None
-        elif license is not None:
-            self.license = license
-        else:
-            raise Exception("Employee must have license")
-        self.phone = phone
-        self.interest_rate = interest_rate
-        self.salary = salary
+        self.license = str(license) if license is not None else ''
+        self.phone = str(phone)
+        self.interest_rate = float(interest_rate)
 
-
+    def get_name(self):
+        return f'{str(self.job)} {self.name} {self.surname}'
+        
 class Qualification(Entity):
     def __init__(
         self,

@@ -9,6 +9,9 @@ from config import ICON_PATH
 from PIL import ImageTk, Image
 from model import Entity, Stuff
 
+from tkcalendar import Calendar, DateEntry
+
+
 from config import config
 
 TK_SILENCE_DEPRECATION=1 
@@ -58,18 +61,23 @@ class MainPage(tk.Frame):
         go_calc_button.pack(pady=10)
 
 
+
+
+
 class CalcPage(tk.Frame):
     def __init__(self, master):
         tk.Frame.__init__(self, master)
         label = tk.Label(self, text='Рассчет зарплаты сотрудника')
         label.pack(side='top', fill='x', pady=10)
+        self.master = master
+        
+        self.set_go_menu()
 
-        go_main_button = tk.Button(
-            self, text='в главное меню',
-            bg=BG,
-            command=lambda: master.switch_frame(MainPage)
-        )
-        go_main_button.pack(pady=10)
+        self.set_drop_menu()
+
+        self.set_date_input()
+    
+    def set_drop_menu(self):
         stuff = get_table(conn=get_connection(), cls=Stuff)
         names = [s.get_name() for s in stuff]
         clicked = StringVar() 
@@ -78,11 +86,29 @@ class CalcPage(tk.Frame):
         drop = OptionMenu(self, clicked, *names)
         drop.pack()
         label = Label(self, text=' ')
-
         button = Button(self, text='Выбрать сотрудника', command=lambda: label.config(text=clicked.get())).pack()
         label.pack()
+    
+    def set_go_menu(self):
+        go_main_button = tk.Button(
+            self, text='в главное меню',
+            bg=BG,
+            command=lambda: self.master.switch_frame(MainPage)
+        )
+        go_main_button.pack(pady=10)
 
+    def set_date_input(self):
+        cal = Calendar(self, selectmode='day', year=2022, month=6, day=1)
+        cal.pack(pady=50)
 
+        def get_date():
+            label.config(text=cal.get_date())
+    
+        button = Button(self, text='начало', command=get_date)
+        button.pack(pady=50)
+
+        label = Label(self, text='')
+        label.pack(pady=50)
 
 def get_connection(config=config):
     try:

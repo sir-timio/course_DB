@@ -1,38 +1,37 @@
-try:
-    import tkinter as tk
-    from tkinter import ttk
-except ImportError:
-    import Tkinter as tk
-    import ttk
+import tkinter as tk
 
-from tkcalendar import Calendar, DateEntry
+class ExampleView(tk.Frame):
+    def __init__(self, *args, **kwargs):
+        tk.Frame.__init__(self, *args, **kwargs)
+        cbframe = tk.Frame(self)
+        cb1 = tk.Checkbutton(cbframe, text="Choice 1")
+        cb2 = tk.Checkbutton(cbframe, text="Choice 2")
+        cb3 = tk.Checkbutton(cbframe, text="Choice 3")
 
-def example1():
-    def print_sel():
-        print(cal.selection_get())
+        cb1.pack(side="left", fill=None, expand=False)
+        cb2.pack(side="left", fill=None, expand=False)
+        cb3.pack(side="left", fill=None, expand=False)
 
-    top = tk.Toplevel(root)
+        # this entry is for illustrative purposes: it
+        # will force column 2 to be widget than a checkbutton
+        e1 = tk.Entry(self, width=20)
+        e1.grid(row=1, column=1, sticky="ew")
 
-    cal = Calendar(top,
-                   font="Arial 14", selectmode='day',
-                   cursor="hand1", year=2018, month=2, day=5)
-    cal.pack(fill="both", expand=True)
-    ttk.Button(top, text="ok", command=print_sel).pack()
+        # place our frame of checkbuttons in the same column
+        # as the entry widget. Because the checkbuttons are
+        # packed in a frame, they will always be "stuck"
+        # to the left side of the cell.
+        cbframe.grid(row=2, column=1, sticky="w")
 
-def example2():
-    top = tk.Toplevel(root)
+        # let column 1 expand and contract with the 
+        # window, so you can see that the column grows
+        # with the window, but that the checkbuttons
+        # stay stuck to the left
+        self.grid_columnconfigure(1, weight=1)
 
-    ttk.Label(top, text='Choose date').pack(padx=10, pady=10)
-
-    cal = DateEntry(top, width=12, background='darkblue',
-                    foreground='white', borderwidth=2)
-    cal.pack(padx=10, pady=10)
-
-root = tk.Tk()
-s = ttk.Style(root)
-s.theme_use('clam')
-
-ttk.Button(root, text='Calendar', command=example1).pack(padx=10, pady=10)
-ttk.Button(root, text='DateEntry', command=example2).pack(padx=10, pady=10)
-
-root.mainloop()
+if __name__ == "__main__":
+    root = tk.Tk()
+    view = ExampleView(root)
+    view.pack(side="top", fill="both", expand=True)
+    root.wm_geometry("400x200")
+    root.mainloop()

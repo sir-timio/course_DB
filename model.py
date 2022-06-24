@@ -7,7 +7,9 @@ class Entity:
     
     def get_data(self):
         return dict((k, v) for k, v in self.__dict__.items() if v is not None)
-
+    
+    def get_row(self):
+        return tuple(v for v in self.__dict__.values())
 
 from enum import Enum
 class Job(Entity):

@@ -10,6 +10,7 @@ drop table if exists procedure cascade;
 drop table if exists price_list cascade;
 drop table if exists stuff_workdays cascade;
 drop table if exists visit_stuff cascade;
+drop table if exists job cascade;
 commit;
 
 create table job(
@@ -22,9 +23,9 @@ commit;
 
 
 insert into job values
-    (1, 2000, 'Admin'),
-    (2, 2500, 'Nurse'),
-    (3, 3000, 'Doctor');
+    (1, 2000, 'администратор'),
+    (2, 2500, 'медсестра'),
+    (3, 3000, 'врач');
 commit;
 
 
@@ -34,29 +35,28 @@ create table stuff(
     surname        varchar(50)  not null,
     job_id         int          not null,
     license        varchar(50)  null unique,
-    phone          varchar(15)  null,
+    phone          varchar(15)  not null,
     interest_rate  real         not null default 0 check (interest_rate between 0 and 1),
-    foreign key (job_id) references job(id),
-    unique (name, surname, job_id)
+    foreign key (job_id) references job(id)
 );
 commit;
 
 -- administrators
 insert into stuff (id, name, surname, job_id, phone) values
-        (1, 'Sasha', 'Dolya', 1, '89637458777'),
-        (2, 'Masha', 'Florya', 1, '89637398777');
+        (1, 'Саша', 'Доля', 1, '89637458777'),
+        (2, 'Маша', 'Флоря', 1, '89637398777');
 commit;
 
 --nurses
 insert into stuff (id, name, surname, job_id, license, phone) values
-        (3, 'Olya', 'Orlova', 2, 'N412-232', '89633268237'),
-        (4, 'Ksenia', 'Frolova', 2, 'N412-664', '89698798745');
+        (3, 'Оля', 'Орлова', 2, 'N412-232', '89633268237'),
+        (4, 'Ксения', 'Фролова', 2, 'N412-664', '89698798745');
 commit;
 
 --doctors
 insert into stuff (id, name, surname, job_id, license, phone, interest_rate) values
-        (5, 'Ivan', 'Sergev', 3, 'DOC123-5123', '89633258777', 0.4),
-        (6, 'Lilya', 'Oslo', 3, 'DOC123-4124', '89637398777', 0.45);
+        (5, 'Иван', 'Сергев', 3, 'DOC123-5123', '89633258777', 0.4),
+        (6, 'Арина', 'Жук', 3, 'DOC123-4124', '89637398777', 0.45);
 commit;
 
 create table stuff_workdays(
@@ -107,8 +107,8 @@ create table qualification(
 commit;
 
 insert into qualification (specialization, organization, stuff_id, date) values
-        (1, 'Moscow med', 5, '2012-02-03'),
-        (3, 'Kazan med', 6, '2015-07-19');
+        (1, 'МГМУ им. Сеченова', 5, '2012-02-03'),
+        (3, 'КГМУ', 6, '2015-07-19');
 commit;
 
 
@@ -146,9 +146,9 @@ commit;
 
 -- patients and med cards
 insert into patient values 
-        (1, 'Pavel'),
-        (2, 'Lera'),
-        (3, 'Stepan');
+        (1, 'Павел'),
+        (2, 'Валерия'),
+        (3, 'Степан');
 
 insert into medical_card values 
         (1, 'M', 'O+', '2001-02-10'),

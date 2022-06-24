@@ -214,6 +214,7 @@ create table procedure(
     code        int             not null,
     location    smallint        null check (location between 0 and 32),
     quantity    smallint        not null default 1 check (quantity > 0),
+    unique(visit_id, code),
     foreign key (code) references price_list(code)
 );
 commit;
@@ -241,7 +242,9 @@ insert into visit_stuff(visit_id, stuff_id) values
         (1, 5), --06-01: 3, 5
         (1, 3), 
         (2, 4),  -- 06-02: 4, 6
-        (2, 6);
+        (2, 6),
+        (4, 4),
+        (4, 6);
 commit;
 
 
@@ -251,11 +254,18 @@ insert into procedure (visit_id, code) values
     (1, 3);
 insert into procedure (visit_id, code, quantity) values
     (2, 1, 3),
-    (2, 2, 2);
+    (2, 2, 2),
+    (3, 1, 2),
+    (3, 2, 2),
+    (4, 1, 2),
+    (4, 2, 2);
 commit;
 
 
-select * from job;
+-- select * from job;
 -- select * from stuff s inner join salary_job j on j.job =s.job 
 
 -- select * from visit v inner join visit_stuff s on v.id = s.visit_id left join stuff_workdays w on s.stuff_id = w.stuff_id and w.date = v.date;
+
+-- select stuff_id, date from stuff_workdays where stuff_id = 1 and date between '2022-06-10' and '2023-01-01';
+select stuff_id, visit_id from visit_stuff where stuff_id = 6 inner join procedure on procedure

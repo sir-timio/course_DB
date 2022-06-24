@@ -7,7 +7,7 @@ from tkinter import StringVar
 
 from config import ICON_PATH
 from PIL import ImageTk, Image
-from model import Entity, Stuff
+from model import Entity, Stuff, Job
 
 from tkcalendar import Calendar, DateEntry
 from datetime import date
@@ -78,13 +78,15 @@ class CalcPage(tk.Frame):
         self.master = master
 
         self.stuff_id = None
-        self.start_date = date(2022, 6, 1)
-        self.end_date = date.today()
+        self.salary = None
+        self.interest_rate = 0
+        self.start_date = None
+        self.end_date = None
 
         self.set_drop_menu()
-        
-        self.set_date_input(1, 'начальная дата', self.start_date, is_start=1)
-        self.set_date_input(2, 'конечная дата', self.end_date)
+
+        self.set_date_input(1, 'начальная дата', date(2022, 6, 1), is_start=1)
+        self.set_date_input(2, 'конечная дата', date.today())
 
         self.set_go_menu()
 
@@ -105,33 +107,90 @@ class CalcPage(tk.Frame):
 
     def set_drop_menu(self):
         stuff = get_table(cls=Stuff)
-        names = [s.get_name() for s in stuff]
+        job = get_table(cls=Job)
+        job_name = dict()
+        job_salary = dict()
+        for j in job:
+            job_name[j.id] = j.name
+            job_salary[j.id] = j.daily_salary
+        
+
+        names = [s.get_name(job_name) for s in stuff]
+        for s in stuff:
+            pass
         clicked = StringVar()
-        clicked.set(names[0])
-        self.stuff_id = int(names[0].split()[0])
+        clicked.set('выбор сотрудника')
 
-        def on_click():
+        def on_select(choice):
             text = clicked.get()
-            label.config(text=text)
-            self.stuff_id = int(text.split()[0])
+            stuff_id, name = text.split(' ', 1)
+            self.stuff_id = int(stuff_id)
             st = get_row(Stuff, self.stuff_id)
-            print(st.get_data())
+            self.salary = job_salary[st.job]
+            text = f'сотрудник: {name}\nсмена: {self.salary}'
+            if st.interest_rate != 0:
+                self.interest_rate = st.interest_rate
+                text += f', {round(self.interest_rate*100, 2)}%'
+            
+            label.config(text=text)
 
-        drop = OptionMenu(self, clicked, *names)
-        drop.grid(row=1, column=1, padx=5, pady=20)
+
+        drop = OptionMenu(self, clicked, *names, command=on_select)
+        drop.grid(row=1, column=1, padx=5, pady=40)
         label = Label(self, text=' ')
-        button = Button(self, text='выбрать сотрудника', command=lambda: on_click())
-        button.grid(row=1, column=2)
-        label.grid(row=2, column=1, padx=5, pady=20)
+        label.grid(row=2, column=1, padx=5, pady=40)
     
     def set_calc_button(self):
-        
         def calc():
-            if self.stuff_id and self.start_date and self.end_date:
-                pass
-            else:
-                pass
-            label.config(text='итого: ')
+            if (self.stuff_id is None or
+                self.start_date is None or
+                self.end_date is None or
+                self.salary is None):
+                    label.config(text='недостаточно данных для рассчета')
+                    return
+
+            query_workdays = f'''select stuff_id, date from stuff_workdays where
+                        stuff_id = {self.stuff_id} and
+                        date between '{self.start_date}' and '{self.end_date}';'''
+            try:
+                conn = get_connection()
+                with conn.cursor() as cur:
+                    cur.execute(query_workdays)
+                    conn.commit()
+                    days = len(cur.fetchall())
+            except Exception as ex:
+                print(f'Cannot select workddays: {ex}')
+                conn.rollback()
+                return
+            
+            total_salary = days * self.salary
+
+            if self.interest_rate != 0:
+                query_visits = f'''
+                select name, price, quantity from visit_stuff vs
+                    inner join treatment tr on tr.visit_id = vs.visit_id
+                    inner join visit v on v.id = vs.visit_id 
+                    inner join price_list p on p.code = tr.code
+                where vs.stuff_id = {self.stuff_id} and
+                    v.date between '{self.start_date}' and '{self.end_date}';
+                '''
+                try:
+                    conn = get_connection()
+                    with conn.cursor() as cur:
+                        cur.execute(query_visits)
+                        conn.commit()
+                        rows = cur.fetchall()
+                        for row in rows:
+                            _, price, quantity = str(row[0]), float(row[1]), int(row[2])
+                            total_salary += price * quantity * self.interest_rate
+                            
+                except Exception as ex:
+                    print(f'Cannot select visits: {ex}')
+                    conn.rollback()
+                    return
+            
+            label.config(text=f'итого: {round(total_salary)}')
+
         label = Label(self, text=' ')
         button = Button(self, text='рассчет', command=lambda: calc())
         button.grid(row=6, column=2)
@@ -180,6 +239,18 @@ def get_table(cls, conn=get_connection()):
         print(f"Exeption select: {ex} for table {table_name}")
         return None
 
+def get_workdays_amount(stuff_id, start_date, end_date, conn=get_connection()):
+    query = f'''select stuff_id, date from stuff_workdays where
+                 stuff_id = {stuff_id} and
+                 date between {start_date} and {end_date}'''
+    try:
+        with conn.cursor() as cur:
+            cur.execute(query)
+            conn.commit();
+            rows = cur.fetchall()
+            return len(rows)
+    except:
+        conn.rollback()
 
 def get_row(cls, id, id_col_name='id', conn=get_connection()):
     table_name = cls.__name__.lower()

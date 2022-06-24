@@ -17,22 +17,18 @@ class Job(Entity):
         self,
         id: int,
         daily_salary: float,
-        job_name: str,
+        name: str,
     ) -> None:
 
         super().__init__()
         self.id = int(id)
         self.daily_salary = float(daily_salary)
-        self.job_name = str(job_name)
-
-    def get_name(self):
-        return self.job_name
-
-
+        self.name = str(name)
+    
 # create table job(
 #     id         int           primary key,
 #     daily_salary   numeric       not null check (daily_salary > 0),
-#     job_name       varchar(100) not null
+#     name           varchar(100) not null
 # );
 # commit;
 
@@ -69,9 +65,10 @@ class Stuff(Entity):
         self.phone = str(phone)
         self.interest_rate = float(interest_rate)
 
-    def get_name(self):
-        return f'{str(self.job)} {self.name} {self.surname}'
-        
+    def get_name(self, job_name: dict):
+        if job_name is not None:
+            return f'{self.id} {job_name[self.job]} {self.name} {self.surname}'
+        return f'{self.id} {self.name} {self.surname}'
 class Qualification(Entity):
     def __init__(
         self,

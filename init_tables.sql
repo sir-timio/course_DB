@@ -6,7 +6,7 @@ drop table if exists qualification cascade;
 drop table if exists medical_card cascade;
 drop table if exists patient cascade;
 drop table if exists visit cascade;
-drop table if exists procedure cascade;
+drop table if exists treatment cascade;
 drop table if exists price_list cascade;
 drop table if exists stuff_workdays cascade;
 drop table if exists visit_stuff cascade;
@@ -149,11 +149,14 @@ insert into patient values
         (1, 'Павел'),
         (2, 'Валерия'),
         (3, 'Степан');
+insert into patient values
+        (4, 'Виктор', 'Викторов');
 
 insert into medical_card values 
         (1, 'M', 'O+', '2001-02-10'),
         (2, 'F', 'A-', '2000-05-17'),
-        (3, 'M', 'AB-', '1999-03-21');
+        (3, 'M', 'AB-', '1999-03-21'),
+        (4, 'M', 'AB-', '1978-01-20');
 commit;
 
 
@@ -208,7 +211,7 @@ create trigger check_stuff before insert or update on visit_stuff
 
 -- select license from stuff;
 
-create table procedure(
+create table treatment(
     id          serial          primary key,
     visit_id    int             not null,
     code        int             not null,
@@ -220,7 +223,7 @@ create table procedure(
 commit;
 
 
-alter table procedure
+alter table treatment
         add foreign key (visit_id) references visit(id);
 commit;
 
@@ -239,7 +242,7 @@ insert into visit(id, patient_id, date) values
 commit;
 
 insert into visit_stuff(visit_id, stuff_id) values
-        (1, 5), --06-01: 3, 5
+        (1, 5),  --06-01: 3, 5
         (1, 3), 
         (2, 4),  -- 06-02: 4, 6
         (2, 6),
@@ -248,11 +251,11 @@ insert into visit_stuff(visit_id, stuff_id) values
 commit;
 
 
-insert into procedure (visit_id, code) values
+insert into treatment (visit_id, code) values
     (1, 1),
     (1, 2),
     (1, 3);
-insert into procedure (visit_id, code, quantity) values
+insert into treatment (visit_id, code, quantity) values
     (2, 1, 3),
     (2, 2, 2),
     (3, 1, 2),
@@ -268,4 +271,4 @@ commit;
 -- select * from visit v inner join visit_stuff s on v.id = s.visit_id left join stuff_workdays w on s.stuff_id = w.stuff_id and w.date = v.date;
 
 -- select stuff_id, date from stuff_workdays where stuff_id = 1 and date between '2022-06-10' and '2023-01-01';
-select stuff_id, visit_id from visit_stuff where stuff_id = 6 inner join procedure on procedure
+select name, price, quantity from visit_stuff vs inner join treatment tr on tr.visit_id = vs.visit_id inner join visit v on v.id = vs.visit_id inner join price_list p on p.code = tr.code  where vs.stuff_id = 6 and v.date between '2022-06-01' and '2022-06-10';

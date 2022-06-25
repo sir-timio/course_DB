@@ -25,14 +25,6 @@ class Job(Entity):
         self.daily_salary = float(daily_salary)
         self.name = str(name)
     
-# create table job(
-#     id         int           primary key,
-#     daily_salary   numeric       not null check (daily_salary > 0),
-#     name           varchar(100) not null
-# );
-# commit;
-
-
 class Specialization(Enum):
     ORTHODONTIST = 1
     THERAPIST = 2
@@ -69,6 +61,8 @@ class Stuff(Entity):
         if job_name is not None:
             return f'{self.id} {job_name[self.job]} {self.name} {self.surname}'
         return f'{self.id} {self.name} {self.surname}'
+
+
 class Qualification(Entity):
     def __init__(
         self,
@@ -96,4 +90,57 @@ class Visit(Entity):
         date: str = None
     ) -> None:
         super().__init__()
-            
+
+
+class Patient(Entity):
+    def __init__(
+        self,
+        id: int,
+        name: str,
+        surname: str,
+        phone: str = None,
+    ) -> None:
+
+        super().__init__()
+        self.id = int(id)
+        self.name = str(name)
+        self.surname = str(surname) if surname is not None else ''
+        self.phone = str(phone) if phone is not None else ''
+
+    def get_name(self):
+        return f'{self.id} {self.name}{" " * bool(len(self.surname) > 0) + self.surname}'
+    
+
+class Treatment (Entity):
+    def __init__(
+        self,
+        id: int,
+        visit_id: int,
+        code: int,
+        location: int,
+        quantity: int,
+    ) -> None:
+
+        super().__init__()
+        self.id = int(id)
+        self.visit_id = int(visit_id)
+        self.code = int(code)
+        self.location = int(location)
+        self.quntity = int(quantity)
+
+class Price_list(Entity):
+    def __init__(
+        self,
+        code: int,
+        name: str,
+        price: float
+    ) -> None:
+
+        super().__init__()
+        self.code = int(code)
+        self.name = str(name)
+        self.price = float(price)
+    
+    def get_name(self, code_to_name: dict):
+        return code_to_name[self.code]
+

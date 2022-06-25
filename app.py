@@ -1,13 +1,14 @@
 import tkinter as tk
-from tkinter import Button, OptionMenu, ttk, Label
+from tkinter import Button, Entry, OptionMenu, ttk, Label
 from tkinter import font as tkfont
+from tkinter import messagebox
 import psycopg2 as psql
 
 from tkinter import StringVar
 
 from config import ICON_PATH
 from PIL import ImageTk, Image
-from model import Entity, Stuff, Job
+from model import Entity, Stuff, Job, Patient, Treatment, Price_list, Visit
 
 from tkcalendar import Calendar, DateEntry
 from datetime import date
@@ -36,7 +37,7 @@ class App(tk.Tk):
         self.configure(background=BG)
         self.focus()
         # self.switch_frame(MainPage)
-        self.switch_frame(CalcPage)
+        self.switch_frame(InsertVisitPage)
 
 
     def switch_frame(self, frame_class):
@@ -56,7 +57,7 @@ class MainPage(tk.Frame):
         label = tk.Label(self, text='Главная страница', bg=LBL_BG)
         label.grid(row=0, column=2, pady=30, padx=30)
         
-        go_calc_button = tk.Button(
+        calc_button = tk.Button(
             self, text='калькулятор зарплат',
             bg=BG,
             background=BG,
@@ -65,14 +66,212 @@ class MainPage(tk.Frame):
             # font=font,
             height=3,
         )
-        go_calc_button.grid(row=1, column=2, padx=30, pady=30)
+        calc_button.grid(row=1, column=1, padx=30, pady=30)
+
+
+        insert_visit_button = tk.Button(
+            self, text='внести визит',
+            bg=BG,
+            background=BG,
+            command=lambda: self.master.switch_frame(InsertVisitPage),
+            highlightbackground=BTN_BG,
+            # font=font,
+            height=3,
+        )
+        insert_visit_button.grid(row=1, column=3, padx=30, pady=30)
+
+
+class InsertVisitPage(tk.Frame):
+    def __init__(self, master):
+            tk.Frame.__init__(self, master, width=W, height=H)
+            label = tk.Label(self, text='Внести визит', font=font)
+            label.grid(row=0, column=2, padx=20, pady=20)
+            tk.Label(self, text='').grid(row=0, column=4,  padx=100, pady=10)
+            self.pack()
+            self.pack_propagate(0)
+            self.master = master
+
+            self.stuff_id = None
+            self.patient_id = None
+            self.date = str(date.today())    
+            self.treatment_list = []
+
+            self.set_go_menu()
+            self.set_date_input(1, 'ввести прием', date(2022, 6, 1))
+            self.set_receipt_room_input()
+            self.set_drop_menu_stuff()
+            self.set_drop_menu_patient()
+            self.set_input_treatment()
+
+            self.insert()
+
+
+    def set_receipt_room_input(self):
+        receipt = StringVar()
+        receipt.set('')
+        receipt_entry = Entry(self, textvariable=receipt)
+        receipt_entry.grid(row=5, column=1)
+        Label(self, text='рецепт:').grid(row=5, column=0, sticky='E')
+
+        room = StringVar()
+        room.set('1')
+        room_entry = Entry(self, textvariable=room)
+        room_entry.grid(row=6, column=1)
+        Label(self, text='кабинет:').grid(row=6, column=0, sticky='E', pady=15)
+
+    def set_go_menu(self):
+            go_main_button = tk.Button(
+                self, text='в главное меню',
+                bg=BG,
+                background=BG,
+                command=lambda: self.master.switch_frame(MainPage),
+                highlightbackground=BTN_BG,
+                font=font,
+                height=3,
+            )
+            go_main_button.grid(row=15, column=0, sticky='W', pady=20, padx=20)
+    
+    def set_date_input(self, col, prefix, default_date):
+        def set_date():
+            self.date = str(cal.get_date())
+            label.config(text=f'выбрано: {cal.get_date()}')
+
+        label = ttk.Label(self, text=prefix)
+        label.grid(row=7, column=col)
+        cal = DateEntry(self, width=12, background='darkblue',
+                        year=default_date.year,
+                        month=default_date.month,
+                        day=default_date.day,
+                        foreground='white', borderwidth=2, )
+        cal.grid(row=8, column=col)
+        button = tk.Button(self, text='установить', command=lambda: set_date())
+        button.grid(row=9, column=col, pady=20)
+    
+    def set_drop_menu_stuff(self):
+        stuff = get_table(cls=Stuff)
+        job = get_table(cls=Job)
+        job_name = dict()
+        job_salary = dict()
+        for j in job:
+            job_name[j.id] = j.name
+            job_salary[j.id] = j.daily_salary
+        
+        names = [s.get_name(job_name) for s in stuff if s.license != '']
+
+        clicked = StringVar()
+        clicked.set('выбор мед. сотрудника')
+
+        def on_select(choice):
+            text = clicked.get()
+            stuff_id, name = text.split(' ', 1)
+            self.stuff_id = int(stuff_id)
+            st = get_row(Stuff, self.stuff_id)
+            self.salary = job_salary[st.job]
+            text = f'сотрудник: {name}'
+            
+            label.config(text=text)
+
+
+        drop = OptionMenu(self, clicked, *names, command=on_select)
+        drop.grid(row=1, column=1, padx=5, pady=5)
+        label = Label(self, text=' ')
+        label.grid(row=2, column=1, padx=5, pady=5)
+    
+    def set_drop_menu_patient(self):
+        patients = get_table(cls=Patient)
+
+        names = [p.get_name() for p in patients]
+
+        
+        clicked = StringVar()
+        clicked.set('выбор пациента')
+
+        def on_select(choice):
+            text = clicked.get()
+            patient_id, name = text.split(' ', 1)
+            self.patient_id = int(patient_id)
+            text = f'пациент: {name}'
+            label.config(text=text)
+
+
+        drop = OptionMenu(self, clicked, *names, command=on_select)
+        drop.grid(row=3, column=1, padx=5, pady=5)
+        label = Label(self, text=' ')
+        label.grid(row=4, column=1, padx=5, pady=5)
+    
+    # patient_id   int             not null,
+    # date         date            not null default now(),
+    # room         int             not null default 1,
+    # receipt      text            null,
+    # foreign key (patient_id) references patient(id)
+    def insert(self):
+        def insert_visit():
+            visit = Visit(self.patient_id)
+        button = Button(self, text='внести визит', command=lambda: insert_visit)
+        button.grid(row=8, column=2)
+    def set_input_treatment(self):
+        
+        price_list  = get_table(cls=Price_list)
+        names = [f'{p.code} {p.name}' for p in price_list]
+
+        def on_select_treatment():
+            text = clicked_treatment.get()
+            code, name = text.split(' ', 1)
+            code = int(code)
+            text = f'добавлено!\nпроцедура: {name}'
+            if quantity.get() != '':
+                try:
+                    q = int(quantity.get())
+                    if q < 1:
+                        text += '\nнекорректное количество, введите число'
+                        q = None
+                    else:
+                        text += f'\nколичество: {q}'
+                except:
+                    text += '\nнекорректное количество'
+            if location.get() != '':
+                try:
+                    l = int(location.get())
+                    if 0 < l < 32:
+                        text += f'\nкод зуба: {l}'
+                    else:
+                        l = None
+                        text += '\nнекорретный код зуба'
+                except:
+                    l = None
+                    text += '\nнекорретный код зуба, введите число'
+                  
+            label.config(text=text)
+            treatment = Treatment(id=None, visit_id=None, code=code, location=)
+        clicked_treatment = StringVar()
+        clicked_treatment.set('выбор процедуры')
+
+        drop_treatment = OptionMenu(self, clicked_treatment, *names)
+        drop_treatment.grid(row=1, column=3, columnspan=2)
+
+        quantity = StringVar()
+        quantity.set('1')
+        quantity_entry = Entry(self, textvariable=quantity)
+        quantity_entry.grid(row=2, column=4, padx=20)
+        Label(self, text='количество:').grid(row=2, column=3, sticky='E')
+
+        location = StringVar()
+        location.set('1')
+        location_entry = Entry(self, textvariable=location)
+        location_entry.grid(row=3, column=4)
+        Label(self, text='код зуба:').grid(row=3, column=3, sticky='E')
+    
+        button = Button(self, text='добавить', command=lambda: on_select_treatment())
+        button.grid(row=4, column=4)
+        label = Label(self, text=' ')
+        label.grid(row=5, column=4)
 
 class CalcPage(tk.Frame):
     def __init__(self, master):
         tk.Frame.__init__(self, master, width=W, height=H)
         label = tk.Label(self, text='Рассчет зарплаты сотрудника', font=font)
-        label.grid(row=0, column=1, sticky='W', padx=20, pady=20)
-        tk.Label(self, text='').grid(row=0, column=4,  padx=100, pady=30)
+        label.grid(row=0, column=1, padx=20, pady=20)
+        # tk.Label(self, text='').grid(row=1, column=4,  padx=100, pady=30)
         self.pack()
         self.pack_propagate(0)
         self.master = master
@@ -85,7 +284,7 @@ class CalcPage(tk.Frame):
 
         self.set_drop_menu()
 
-        self.set_date_input(1, 'начальная дата', date(2022, 6, 1), is_start=1)
+        self.set_date_input(0, 'начальная дата', date(2022, 6, 1), is_start=1)
         self.set_date_input(2, 'конечная дата', date.today())
 
         self.set_go_menu()
@@ -103,7 +302,7 @@ class CalcPage(tk.Frame):
             font=font,
             height=3,
         )
-        go_main_button.grid(row=10, column=0, sticky='W', pady=20, padx=30)
+        go_main_button.grid(row=10, column=0, pady=20, padx=30)
 
     def set_drop_menu(self):
         stuff = get_table(cls=Stuff)
@@ -136,9 +335,9 @@ class CalcPage(tk.Frame):
 
 
         drop = OptionMenu(self, clicked, *names, command=on_select)
-        drop.grid(row=1, column=1, padx=5, pady=40)
+        drop.grid(row=1, column=1, padx=10, pady=40)
         label = Label(self, text=' ')
-        label.grid(row=2, column=1, padx=5, pady=40)
+        label.grid(row=2, column=1, padx=10, pady=40)
     
     def set_calc_button(self):
         def calc():
@@ -193,9 +392,8 @@ class CalcPage(tk.Frame):
 
         label = Label(self, text=' ')
         button = Button(self, text='рассчет', command=lambda: calc())
-        button.grid(row=6, column=2)
-        label.grid(row=6, column=1, pady=10, padx=20)
-
+        button.grid(row=6, column=1)
+        label.grid(row=7, column=1, pady=10, padx=10)
 
     def set_date_input(self, col, prefix, default_date, is_start=0):
         def print_date():

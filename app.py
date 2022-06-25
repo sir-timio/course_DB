@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import Button, Entry, OptionMenu, ttk, Label
 from tkinter import font as tkfont
 from tkinter import messagebox
+from click import command
 import psycopg2 as psql
 
 from tkinter import StringVar
@@ -91,31 +92,34 @@ class InsertVisitPage(tk.Frame):
             self.pack_propagate(0)
             self.master = master
 
-            self.stuff_id = None
             self.patient_id = None
-            self.date = str(date.today())    
+            self.doctor_id = None
+            self.visit_id = None
+            self.room = StringVar()
+            self.room.set('1')
+            self.receipt = StringVar()
+            self.receipt.set('')
+            self.date = str(date.today())
+            self.time = None    
             self.treatment_list = []
 
             self.set_go_menu()
             self.set_date_input(1, 'ввести прием', date(2022, 6, 1))
             self.set_receipt_room_input()
-            self.set_drop_menu_stuff()
+            self.set_drop_menu_doctor()
             self.set_drop_menu_patient()
             self.set_input_treatment()
 
-            self.insert()
+            self.insert_visit()
 
 
     def set_receipt_room_input(self):
-        receipt = StringVar()
-        receipt.set('')
-        receipt_entry = Entry(self, textvariable=receipt)
+
+        receipt_entry = Entry(self, textvariable=self.receipt)
         receipt_entry.grid(row=5, column=1)
         Label(self, text='рецепт:').grid(row=5, column=0, sticky='E')
 
-        room = StringVar()
-        room.set('1')
-        room_entry = Entry(self, textvariable=room)
+        room_entry = Entry(self, textvariable=self.room)
         room_entry.grid(row=6, column=1)
         Label(self, text='кабинет:').grid(row=6, column=0, sticky='E', pady=15)
 
@@ -147,28 +151,24 @@ class InsertVisitPage(tk.Frame):
         button = tk.Button(self, text='установить', command=lambda: set_date())
         button.grid(row=9, column=col, pady=20)
     
-    def set_drop_menu_stuff(self):
-        stuff = get_table(cls=Stuff)
+    def set_drop_menu_doctor(self):
+        doctors = get_table(cls=Stuff)
         job = get_table(cls=Job)
         job_name = dict()
         job_salary = dict()
         for j in job:
             job_name[j.id] = j.name
-            job_salary[j.id] = j.daily_salary
         
-        names = [s.get_name(job_name) for s in stuff if s.license != '']
+        names = [s.get_name(job_name) for s in doctors if s.job == 3]
 
         clicked = StringVar()
         clicked.set('выбор мед. сотрудника')
 
         def on_select(choice):
             text = clicked.get()
-            stuff_id, name = text.split(' ', 1)
-            self.stuff_id = int(stuff_id)
-            st = get_row(Stuff, self.stuff_id)
-            self.salary = job_salary[st.job]
+            doctor_id, name = text.split(' ', 1)
+            self.doctor_id = int(doctor_id)
             text = f'сотрудник: {name}'
-            
             label.config(text=text)
 
 
@@ -199,16 +199,35 @@ class InsertVisitPage(tk.Frame):
         label = Label(self, text=' ')
         label.grid(row=4, column=1, padx=5, pady=5)
     
-    # patient_id   int             not null,
-    # date         date            not null default now(),
-    # room         int             not null default 1,
-    # receipt      text            null,
-    # foreign key (patient_id) references patient(id)
-    def insert(self):
-        def insert_visit():
-            visit = Visit(self.patient_id)
-        button = Button(self, text='внести визит', command=lambda: insert_visit)
-        button.grid(row=8, column=2)
+    def insert_visit(self):
+        def _insert_visit():
+            visit = Visit(
+                patient_id=self.patient_id,
+                doctor_id=self.doctor_id,
+                date=self.date,
+                time=self.time,
+                room=self.room.get(),
+                receipt=self.receipt.get() or None
+            )
+            ok, err = insert(visit)
+            if ok:
+                print('hell yeah')
+            else:
+                messagebox.showerror('Ошибка', err)
+                print(f'hell no: {err}')
+        button = Button(self, text='внести визит', command=lambda: _insert_visit())
+        button.grid(row=12, column=2)
+# class Visit(Entity):
+#     def __init__(
+#         self,
+#         patient_id: int,
+#         doctor_id: int,
+#         date: str = None,
+#         time: str = None,
+#         room: int = None,
+#         receipt: str = None,
+
+
     def set_input_treatment(self):
         
         price_list  = get_table(cls=Price_list)
@@ -219,15 +238,18 @@ class InsertVisitPage(tk.Frame):
             code, name = text.split(' ', 1)
             code = int(code)
             text = f'добавлено!\nпроцедура: {name}'
+            ok = True
             if quantity.get() != '':
                 try:
                     q = int(quantity.get())
                     if q < 1:
                         text += '\nнекорректное количество, введите число'
                         q = None
+                        ok = False
                     else:
                         text += f'\nколичество: {q}'
                 except:
+                    ok = False
                     text += '\nнекорректное количество'
             if location.get() != '':
                 try:
@@ -236,13 +258,17 @@ class InsertVisitPage(tk.Frame):
                         text += f'\nкод зуба: {l}'
                     else:
                         l = None
+                        ok = False
                         text += '\nнекорретный код зуба'
                 except:
                     l = None
+                    ok = False
                     text += '\nнекорретный код зуба, введите число'
-                  
-            label.config(text=text)
-            treatment = Treatment(id=None, visit_id=None, code=code, location=)
+            if ok:
+                self.treatment_list.append(
+                    Treatment(id=None, visit_id=self.visit_id, code=code, location=l, quantity=q)
+                )
+                label.config(text=text)
         clicked_treatment = StringVar()
         clicked_treatment.set('выбор процедуры')
 
@@ -366,11 +392,10 @@ class CalcPage(tk.Frame):
 
             if self.interest_rate != 0:
                 query_visits = f'''
-                select name, price, quantity from visit_stuff vs
-                    inner join treatment tr on tr.visit_id = vs.visit_id
-                    inner join visit v on v.id = vs.visit_id 
+                select name, price, quantity from visit v
+                    inner join treatment tr on tr.visit_id = v.id
                     inner join price_list p on p.code = tr.code
-                where vs.stuff_id = {self.stuff_id} and
+                where v.doctor_id = {self.stuff_id} and
                     v.date between '{self.start_date}' and '{self.end_date}';
                 '''
                 try:
@@ -421,6 +446,27 @@ def get_connection(config=config):
     except Exception as ex:
         print(f'Cannot connect: {ex}')
         return None
+
+def insert(entity: Entity, conn=get_connection()):
+    table_name = entity.__class__.__name__.lower()
+    query = f'insert into {table_name}'
+    d = entity.get_data()
+    fields = d.keys()
+    values = list(d.values())
+    query += ' (' + ','.join(fields) + ')'
+    query += ' values (' + ','.join(['%s'] * len(values)) + ');'
+    print(query)
+    print(values)
+    try:
+        with conn.cursor() as cur:
+            cur.execute(query, values)
+            conn.commit()
+        return 1, ''
+    except Exception as ex:
+        conn.rollback()
+        print(f"Exeption in insert: {ex} for table {table_name} with entity {entity}")
+        return 0, ex
+
 
 def get_table(cls, conn=get_connection()):
     table_name = cls.__name__.lower()

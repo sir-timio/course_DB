@@ -14,7 +14,7 @@ drop table if exists job cascade;
 commit;
 
 create table job(
-    id         int           primary key,
+    id             int           primary key,
     daily_salary   numeric       not null check (daily_salary > 0),
     job_name       varchar(100) not null
 );
@@ -63,9 +63,25 @@ create table stuff_workdays(
     stuff_id     int        not null,
     date         date       not null,
     unique(stuff_id, date),
-    constraint fk_stuff
-        foreign key(stuff_id) references stuff(id)
+    foreign key(stuff_id) references stuff(id)
 );
+commit;
+
+
+create table qualification(
+    id                serial        primary key,
+    specialization    smallint      not null,
+    stuff_id          int           not null,
+    organization      varchar(100)  not null,
+    date              date          null,
+    constraint fk_stuff 
+            foreign key(stuff_id) references stuff(id)
+);
+commit;
+
+insert into qualification (specialization, organization, stuff_id, date) values
+        (1, 'МГМУ им. Сеченова', 5, '2012-02-03'),
+        (3, 'КГМУ', 6, '2015-07-19');
 commit;
 
 insert into stuff_workdays(stuff_id, date)
@@ -92,23 +108,6 @@ commit;
 
 insert into stuff_workdays(stuff_id, date)
 select 6, * from generate_series('2022-06-02'::date, '2022-06-23'::date, '2 day'::interval);
-commit;
-
-
-create table qualification(
-    id                serial        primary key,
-    specialization    smallint      not null,
-    stuff_id          int           not null,
-    organization      varchar(100)  not null,
-    date              date          null,
-    constraint fk_stuff 
-            foreign key(stuff_id) references stuff(id)
-);
-commit;
-
-insert into qualification (specialization, organization, stuff_id, date) values
-        (1, 'МГМУ им. Сеченова', 5, '2012-02-03'),
-        (3, 'КГМУ', 6, '2015-07-19');
 commit;
 
 
@@ -167,49 +166,39 @@ create table price_list(
 );
 
 create table visit(
-    id           int             primary key,
+    id           serial          primary key,
     patient_id   int             not null,
+    doctor_id    int             not null,
     date         date            not null default now(),
+    time         time            not null default date_trunc('minutes', now()),
     room         int             not null default 1,
     receipt      text            null,
-    foreign key (patient_id) references patient(id)
+    foreign key (patient_id) references patient(id),
+    foreign key (doctor_id) references stuff(id),
+    unique (id, doctor_id),
+    unique (id, patient_id)
 );
 commit;
-
-create table visit_stuff(
-    visit_id     int        not null,
-    stuff_id     int        not null,
-    foreign key(visit_id) references visit(id),
-    foreign key(stuff_id) references stuff(id),
-    unique(visit_id, stuff_id)
-);
-commit;
-
-
-select id, license from stuff where license is null;
 
 create or replace function check_stuff()
     returns trigger
 as $check_stuff$
 begin
-    if not exists(select id, license from stuff where id=new.stuff_id and license is not null) then
-        raise exception 'Cannot hold a visit without medical license';
+    if not exists(select id, job_id from stuff where id=new.doctor_id and job_id=3) then
+        raise exception 'Only doctor can hold a visit';
     end if;
-    if not exists(
-        select date from visit where visit.id = new.visit_id
-        intersect
-        select date from stuff_workdays s where s.stuff_id=new.stuff_id
+    if new.date not in(
+        select date from stuff_workdays s where s.stuff_id=new.doctor_id
     ) then
-        raise exception 'Stuff cannot hold a visit on a non-working day';
+        raise exception 'Doctor cannot hold a visit on a non-working day';
     end if;
     return new;
 end;
 $check_stuff$ language plpgsql;
 
-create trigger check_stuff before insert or update on visit_stuff
+create trigger check_stuff before insert or update on visit
     for each row execute function check_stuff();
 
--- select license from stuff;
 
 create table treatment(
     id          serial          primary key,
@@ -218,13 +207,9 @@ create table treatment(
     location    smallint        null check (location between 0 and 32),
     quantity    smallint        not null default 1 check (quantity > 0),
     unique(visit_id, code),
-    foreign key (code) references price_list(code)
+    foreign key (code) references price_list(code),
+    foreign key (visit_id) references visit(id)
 );
-commit;
-
-
-alter table treatment
-        add foreign key (visit_id) references visit(id);
 commit;
 
 insert into price_list values
@@ -234,22 +219,12 @@ insert into price_list values
     (4, 'установка коронки', 5000);
 commit;
 
-insert into visit(id, patient_id, date) values
-        (1, 1, '2022-06-01'),
-        (2, 2, '2022-06-02'),
-        (3, 1, '2022-06-03'),
-        (4, 1, '2022-06-04');
+insert into visit(id, patient_id, doctor_id, date) values
+        (1, 1, 5, '2022-06-01'),
+        (2, 2, 6,'2022-06-02'),
+        (3, 1, 5, '2022-06-03'),
+        (4, 1, 6, '2022-06-04');
 commit;
-
-insert into visit_stuff(visit_id, stuff_id) values
-        (1, 5),  --06-01: 3, 5
-        (1, 3), 
-        (2, 4),  -- 06-02: 4, 6
-        (2, 6),
-        (4, 4),
-        (4, 6);
-commit;
-
 
 insert into treatment (visit_id, code) values
     (1, 1),
@@ -268,7 +243,6 @@ commit;
 -- select * from job;
 -- select * from stuff s inner join salary_job j on j.job =s.job 
 
--- select * from visit v inner join visit_stuff s on v.id = s.visit_id left join stuff_workdays w on s.stuff_id = w.stuff_id and w.date = v.date;
-
+select * from visit;
 -- select stuff_id, date from stuff_workdays where stuff_id = 1 and date between '2022-06-10' and '2023-01-01';
-select name, price, quantity from visit_stuff vs inner join treatment tr on tr.visit_id = vs.visit_id inner join visit v on v.id = vs.visit_id inner join price_list p on p.code = tr.code  where vs.stuff_id = 6 and v.date between '2022-06-01' and '2022-06-10';
+-- select name, price, quantity from visit_stuff vs inner join treatment tr on tr.visit_id = vs.visit_id inner join visit v on v.id = vs.visit_id inner join price_list p on p.code = tr.code  where vs.stuff_id = 6 and v.date between '2022-06-01' and '2022-06-10';

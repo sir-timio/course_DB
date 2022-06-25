@@ -1,4 +1,4 @@
-select 'drop table if exists "' || tablename || '" cascade;' from pg_tables;
+-- select 'drop table if exists "' || tablename || '" cascade;' from pg_tables;
 
 drop table if exists salary_job cascade;
 drop table if exists stuff cascade;
@@ -219,11 +219,11 @@ insert into price_list values
     (4, 'установка коронки', 5000);
 commit;
 
-insert into visit(id, patient_id, doctor_id, date) values
-        (1, 1, 5, '2022-06-01'),
-        (2, 2, 6,'2022-06-02'),
-        (3, 1, 5, '2022-06-03'),
-        (4, 1, 6, '2022-06-04');
+insert into visit(patient_id, doctor_id, date) values
+        (1, 5, '2022-06-01'),
+        (2, 6,'2022-06-02'),
+        (1, 5, '2022-06-03'),
+        (1, 6, '2022-06-04');
 commit;
 
 insert into treatment (visit_id, code) values

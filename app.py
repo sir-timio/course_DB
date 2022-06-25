@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import Button, Entry, OptionMenu, ttk, Label
 from tkinter import font as tkfont
 from tkinter import messagebox
+from attr import field
 from click import command
 import psycopg2 as psql
 
@@ -209,12 +210,38 @@ class InsertVisitPage(tk.Frame):
                 room=self.room.get(),
                 receipt=self.receipt.get() or None
             )
-            ok, err = insert(visit)
-            if ok:
-                print('hell yeah')
-            else:
+            if len(self.treatment_list) == 0:
+                ok = False
+                err = 'Нет ни одной процедуры для визита'
                 messagebox.showerror('Ошибка', err)
-                print(f'hell no: {err}')
+                return
+            query = 'insert into visit'
+            d = visit.get_data()
+            fields = d.keys()
+            values = list(d.values())
+            query += ' (' + ', '.join(fields) + ')'
+            query += ' values (' + ', '.join(['%s'] * len(values)) + ')'
+            query += ' returning id;'
+            conn = get_connection()
+            try:
+                with conn.cursor() as cur:
+                    cur.execute(query, values)
+                    conn.commit()
+                    res = cur.fetchall()
+                    self.visit_id = int(res[0][0])
+                    print(self.visit_id)
+            except Exception as ex:
+                conn.rollback()
+                print(f'Exception {ex} inserting visit')
+                messagebox.showerror('ошибка', ex)
+            for i in range(len(self.treatment_list)):
+                self.treatment_list[i].visit_id = self.visit_id
+            
+            for t in self.treatment_list:
+                insert(t)
+  
+
+
         button = Button(self, text='внести визит', command=lambda: _insert_visit())
         button.grid(row=12, column=2)
 # class Visit(Entity):
@@ -455,8 +482,6 @@ def insert(entity: Entity, conn=get_connection()):
     values = list(d.values())
     query += ' (' + ','.join(fields) + ')'
     query += ' values (' + ','.join(['%s'] * len(values)) + ');'
-    print(query)
-    print(values)
     try:
         with conn.cursor() as cur:
             cur.execute(query, values)

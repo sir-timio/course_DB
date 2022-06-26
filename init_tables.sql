@@ -1,5 +1,3 @@
--- select 'drop table if exists "' || tablename || '" cascade;' from pg_tables;
-
 drop table if exists salary_job cascade;
 drop table if exists stuff cascade;
 drop table if exists qualification cascade;
@@ -15,14 +13,15 @@ commit;
 
 create table job(
     id             int           primary key,
+    job_name       varchar(100)  not null,
     daily_salary   numeric       not null check (daily_salary > 0),
-    job_name       varchar(100) not null
+    unique(job_name)
 );
 commit;
 
 
 
-insert into job values
+insert into job (id, daily_salary, job_name) values
     (1, 2000, 'администратор'),
     (2, 2500, 'медсестра'),
     (3, 3000, 'врач');
@@ -33,11 +32,13 @@ create table stuff(
     id             int          primary key,
     name           varchar(50)  not null,
     surname        varchar(50)  not null,
-    job_id         int          not null,
-    license        varchar(50)  null unique,
     phone          varchar(15)  not null,
+    job_id         int          not null,
+    license        varchar(50)  null,
     interest_rate  real         not null default 0 check (interest_rate between 0 and 1),
-    foreign key (job_id) references job(id)
+    foreign key (job_id) references job(id),
+    unique(phone),
+    unique(license)
 );
 commit;
 
@@ -56,10 +57,11 @@ commit;
 --doctors
 insert into stuff (id, name, surname, job_id, license, phone, interest_rate) values
         (5, 'Иван', 'Сергев', 3, 'DOC123-5123', '89633258777', 0.4),
-        (6, 'Арина', 'Жук', 3, 'DOC123-4124', '89637398777', 0.45);
+        (6, 'Арина', 'Жук', 3, 'DOC123-4124', '89617391777', 0.45);
 commit;
 
 create table stuff_workdays(
+    id           serial     primary key,
     stuff_id     int        not null,
     date         date       not null,
     unique(stuff_id, date),
@@ -70,8 +72,8 @@ commit;
 
 create table qualification(
     id                serial        primary key,
-    specialization    smallint      not null,
     stuff_id          int           not null,
+    specialization    smallint      not null,
     organization      varchar(100)  not null,
     date              date          null,
     constraint fk_stuff 
@@ -130,7 +132,8 @@ create table patient(
     id              int             primary key,
     name            varchar(50)     not null,
     surname         varchar(50)     null,
-    phone           varchar(15)     null
+    phone           varchar(15)     not null,
+    unique(phone)
 );
 
 
@@ -144,12 +147,12 @@ alter table patient
 commit;
 
 -- patients and med cards
-insert into patient values 
-        (1, 'Павел'),
-        (2, 'Валерия'),
-        (3, 'Степан');
+insert into patient (id, name, phone) values 
+        (1, 'Павел', '89634386237'),
+        (2, 'Валерия', '89333162239'),
+        (3, 'Степан', '89635289217');
 insert into patient values
-        (4, 'Виктор', 'Викторов');
+        (4, 'Виктор', 'Викторов', '89638260230');
 
 insert into medical_card values 
         (1, 'M', 'O+', '2001-02-10'),
@@ -162,7 +165,8 @@ commit;
 create table price_list(
     code        int             primary key,
     name        varchar(255)    not null,
-    price       numeric         not null check (price > 0)
+    price       numeric         not null check (price > 0),
+    unique(name)
 );
 
 create table visit(
@@ -171,7 +175,7 @@ create table visit(
     doctor_id    int             not null,
     date         date            not null default now(),
     time         time            not null default date_trunc('minutes', now()),
-    room         int             not null default 1,
+    room         smallint        not null default 1,
     receipt      text            null,
     foreign key (patient_id) references patient(id),
     foreign key (doctor_id) references stuff(id),
@@ -206,7 +210,6 @@ create table treatment(
     code        int             not null,
     location    smallint        null check (location between 0 and 32),
     quantity    smallint        not null default 1 check (quantity > 0),
-    unique(visit_id, code),
     foreign key (code) references price_list(code),
     foreign key (visit_id) references visit(id)
 );
@@ -219,11 +222,11 @@ insert into price_list values
     (4, 'установка коронки', 5000);
 commit;
 
-insert into visit(patient_id, doctor_id, date) values
-        (1, 5, '2022-06-01'),
-        (2, 6,'2022-06-02'),
-        (1, 5, '2022-06-03'),
-        (1, 6, '2022-06-04');
+insert into visit(id, patient_id, doctor_id, date) values
+        (1, 1, 5, '2022-06-01'),
+        (2, 2, 6,'2022-06-02'),
+        (3, 1, 5, '2022-06-03'),
+        (4, 1, 6, '2022-06-04');
 commit;
 
 insert into treatment (visit_id, code) values
@@ -243,6 +246,6 @@ commit;
 -- select * from job;
 -- select * from stuff s inner join salary_job j on j.job =s.job 
 
-select * from visit;
+-- select * from visit;
 -- select stuff_id, date from stuff_workdays where stuff_id = 1 and date between '2022-06-10' and '2023-01-01';
 -- select name, price, quantity from visit_stuff vs inner join treatment tr on tr.visit_id = vs.visit_id inner join visit v on v.id = vs.visit_id inner join price_list p on p.code = tr.code  where vs.stuff_id = 6 and v.date between '2022-06-01' and '2022-06-10';

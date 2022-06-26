@@ -21,14 +21,14 @@ class Job(Entity):
     def __init__(
         self,
         id: int,
+        job_name: str,
         daily_salary: float,
-        name: str,
     ) -> None:
 
         super().__init__()
         self.id = cast(id, int)
         self.daily_salary = cast(daily_salary, float)
-        self.name = cast(name, str)
+        self.name = cast(job_name, str)
     
 class Specialization(Enum):
     ORTHODONTIST = 1
@@ -46,9 +46,9 @@ class Stuff(Entity):
         id: int,
         name: str,
         surname: str,
-        job: int,
+        phone: str,
+        job_id: int,
         license: str = None,
-        phone: str = None,
         interest_rate: float = None,
     ) -> None:
 
@@ -56,7 +56,7 @@ class Stuff(Entity):
         self.id = cast(id, int)
         self.name = cast(name, str)
         self.surname = cast(surname, str)
-        self.job = cast(job, int)
+        self.job_id = cast(job_id, int)
 
         self.license = cast(license, str)
         self.phone = cast(phone, str)
@@ -64,8 +64,10 @@ class Stuff(Entity):
 
     def get_name(self, job_name: dict):
         if job_name is not None:
-            return f'{self.id} {job_name[self.job]} {self.name} {self.surname}'
-        return f'{self.id} {self.name} {self.surname}'
+            return f'{job_name[self.job_id]} {self.name} {self.surname}'
+        return f'{self.name} {self.surname}'
+    def is_doctor(self):
+        return self.job_id == 3
 
 
 class Qualification(Entity):
@@ -122,7 +124,7 @@ class Patient(Entity):
         self.phone = str(phone) if phone is not None else ''
 
     def get_name(self):
-        return f'{self.id} {self.name}{" " * bool(len(self.surname) > 0) + self.surname}'
+        return f'{self.name}{" " * bool(len(self.surname) > 0) + self.surname}'
     
 
 class Treatment (Entity):

@@ -153,22 +153,25 @@ class InsertVisitPage(tk.Frame):
         button.grid(row=9, column=col, pady=20)
     
     def set_drop_menu_doctor(self):
-        doctors = get_table(cls=Stuff)
+        stuff = get_table(cls=Stuff)
+        doctors = [s for s in stuff if s.is_doctor()]
+
         job = get_table(cls=Job)
         job_name = dict()
-        job_salary = dict()
         for j in job:
             job_name[j.id] = j.name
         
-        names = [s.get_name(job_name) for s in doctors if s.job == 3]
+        names = [s.get_name(job_name) for s in doctors]
+        ids = [d.id for d in doctors]
+        name_to_id = dict(zip(names, ids))
 
         clicked = StringVar()
         clicked.set('выбор мед. сотрудника')
 
         def on_select(choice):
             text = clicked.get()
-            doctor_id, name = text.split(' ', 1)
-            self.doctor_id = int(doctor_id)
+            name = text
+            self.doctor_id = int(name_to_id.get(name))
             text = f'сотрудник: {name}'
             label.config(text=text)
 
@@ -182,15 +185,18 @@ class InsertVisitPage(tk.Frame):
         patients = get_table(cls=Patient)
 
         names = [p.get_name() for p in patients]
-
+        ids = [p.id for p in patients]
+        name_to_id = dict(zip(names, ids))
+        
         
         clicked = StringVar()
         clicked.set('выбор пациента')
 
+
         def on_select(choice):
             text = clicked.get()
-            patient_id, name = text.split(' ', 1)
-            self.patient_id = int(patient_id)
+            name = text
+            self.patient_id = int(name_to_id.get(name))
             text = f'пациент: {name}'
             label.config(text=text)
 
@@ -202,6 +208,20 @@ class InsertVisitPage(tk.Frame):
     
     def insert_visit(self):
         def _insert_visit():
+            
+            if len(self.treatment_list) == 0:
+                err = 'Нет ни одной процедуры для визита'
+                messagebox.showerror('Ошибка', err)
+                return
+            if not self.patient_id:
+                err = 'Внесите пациента'
+                messagebox.showerror('Ошибка', err)
+                return
+            if not self.doctor_id:
+                err = 'Внесите врача'
+                messagebox.showerror('Ошибка', err)
+                return
+            
             visit = Visit(
                 patient_id=self.patient_id,
                 doctor_id=self.doctor_id,
@@ -210,11 +230,6 @@ class InsertVisitPage(tk.Frame):
                 room=self.room.get(),
                 receipt=self.receipt.get() or None
             )
-            if len(self.treatment_list) == 0:
-                ok = False
-                err = 'Нет ни одной процедуры для визита'
-                messagebox.showerror('Ошибка', err)
-                return
             query = 'insert into visit'
             d = visit.get_data()
             fields = d.keys()
@@ -229,7 +244,6 @@ class InsertVisitPage(tk.Frame):
                     conn.commit()
                     res = cur.fetchall()
                     self.visit_id = int(res[0][0])
-                    print(self.visit_id)
             except Exception as ex:
                 conn.rollback()
                 print(f'Exception {ex} inserting visit')
@@ -244,26 +258,18 @@ class InsertVisitPage(tk.Frame):
 
         button = Button(self, text='внести визит', command=lambda: _insert_visit())
         button.grid(row=12, column=2)
-# class Visit(Entity):
-#     def __init__(
-#         self,
-#         patient_id: int,
-#         doctor_id: int,
-#         date: str = None,
-#         time: str = None,
-#         room: int = None,
-#         receipt: str = None,
-
 
     def set_input_treatment(self):
         
         price_list  = get_table(cls=Price_list)
-        names = [f'{p.code} {p.name}' for p in price_list]
+        names = [p.name for p in price_list]
+        ids = [p.code for p in price_list]
+        name_to_id = dict(zip(names, ids))
 
         def on_select_treatment():
             text = clicked_treatment.get()
-            code, name = text.split(' ', 1)
-            code = int(code)
+            name = text
+            code = int(name_to_id.get(name))
             text = f'добавлено!\nпроцедура: {name}'
             ok = True
             if quantity.get() != '':
@@ -368,17 +374,18 @@ class CalcPage(tk.Frame):
         
 
         names = [s.get_name(job_name) for s in stuff]
-        for s in stuff:
-            pass
+        ids = [s.id for s in stuff]
+        name_to_id = dict(zip(names, ids))
         clicked = StringVar()
         clicked.set('выбор сотрудника')
 
         def on_select(choice):
             text = clicked.get()
-            stuff_id, name = text.split(' ', 1)
+            name = text
+            stuff_id = name_to_id.get(name, 0)
             self.stuff_id = int(stuff_id)
             st = get_row(Stuff, self.stuff_id)
-            self.salary = job_salary[st.job]
+            self.salary = job_salary[st.job_id]
             text = f'сотрудник: {name}\nсмена: {self.salary}'
             if st.interest_rate != 0:
                 self.interest_rate = st.interest_rate

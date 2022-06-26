@@ -6,16 +6,17 @@ import psycopg2 as psql
 from model import Entity, Stuff, Job, Patient, Treatment, Price_list, Visit
 
 from tkcalendar import DateEntry
-from datetime import date
-
+from datetime import date, time
 font = 'Arial 16'
 
+import re
+TIME_REGEX = '^([0-1]?[0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$'
 
 from config import config
 
 TK_SILENCE_DEPRECATION=1 
 W, H = 1280, 720
-W_BIAS = 0
+W_BIAS = 2560
 BG = "#79def7"
 BTN_BG = "#3dffc2"
 LBL_BG = "#79def7"
@@ -92,20 +93,20 @@ class InsertVisitPage(tk.Frame):
             self.receipt = StringVar()
             self.receipt.set('')
             self.date = str(date.today())
-            self.time = None    
+            self.time = StringVar()
+            self.time.set('12:00')
             self.treatment_list = []
 
             self.set_go_menu()
             self.set_date_input(1, 'ввести прием', date(2022, 6, 1))
-            self.set_receipt_room_input()
+            self.set_receipt_room_time_input()
             self.set_drop_menu_doctor()
             self.set_drop_menu_patient()
             self.set_input_treatment()
-
             self.insert_visit()
 
 
-    def set_receipt_room_input(self):
+    def set_receipt_room_time_input(self):
 
         receipt_entry = Entry(self, textvariable=self.receipt)
         receipt_entry.grid(row=5, column=1)
@@ -115,6 +116,9 @@ class InsertVisitPage(tk.Frame):
         room_entry.grid(row=6, column=1)
         Label(self, text='кабинет:').grid(row=6, column=0, sticky='E', pady=15)
 
+        time_entry = Entry(self, textvariable=self.time)
+        time_entry.grid(row=10, column=1)
+        Label(self, text='время начала приема:').grid(row=10, column=0, sticky='E', pady=15)
     def set_go_menu(self):
             go_main_button = tk.Button(
                 self, text='в главное меню',
@@ -212,12 +216,15 @@ class InsertVisitPage(tk.Frame):
                 err = 'Внесите врача'
                 messagebox.showerror('Ошибка', err)
                 return
-            
+            if not re.fullmatch(TIME_REGEX, self.time.get()):
+                err = 'Введите корректно время в формате hh:mm:ss'
+                messagebox.showerror('Ошибка', err)
+                return
             visit = Visit(
                 patient_id=self.patient_id,
                 doctor_id=self.doctor_id,
                 date=self.date,
-                time=self.time,
+                time=self.time.get(),
                 room=self.room.get(),
                 receipt=self.receipt.get() or None
             )
@@ -239,11 +246,16 @@ class InsertVisitPage(tk.Frame):
                 conn.rollback()
                 print(f'Exception {ex} inserting visit')
                 messagebox.showerror('ошибка', ex)
+                return
             for i in range(len(self.treatment_list)):
                 self.treatment_list[i].visit_id = self.visit_id
             
             for t in self.treatment_list:
-                insert(t)
+                ok, ex = insert(t)
+                if not ok:
+                    return
+            
+            messagebox.showinfo('Визит внесен', 'успешно внесен визит')
   
 
 

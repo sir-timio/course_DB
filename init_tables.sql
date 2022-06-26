@@ -241,11 +241,3 @@ insert into treatment (visit_id, code, quantity) values
     (4, 1, 2),
     (4, 2, 2);
 commit;
-
-
--- select * from job;
--- select * from stuff s inner join salary_job j on j.job =s.job 
-
--- select * from visit;
--- select stuff_id, date from stuff_workdays where stuff_id = 1 and date between '2022-06-10' and '2023-01-01';
--- select name, price, quantity from visit_stuff vs inner join treatment tr on tr.visit_id = vs.visit_id inner join visit v on v.id = vs.visit_id inner join price_list p on p.code = tr.code  where vs.stuff_id = 6 and v.date between '2022-06-01' and '2022-06-10';

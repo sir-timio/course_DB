@@ -1,5 +1,3 @@
-#!/usr/bin/python3
-
 import psycopg2 as psql
 from config import config
 

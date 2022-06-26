@@ -1,6 +1,3 @@
-from datetime import datetime
-import json
-
 def cast(var, cls):
     if var is not None:
         return cls(var)

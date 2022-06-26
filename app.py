@@ -1,18 +1,11 @@
 import tkinter as tk
-from tkinter import Button, Entry, OptionMenu, ttk, Label
+from tkinter import Button, Entry, OptionMenu, ttk, Label, messagebox, StringVar
 from tkinter import font as tkfont
-from tkinter import messagebox
-from attr import field
-from click import command
+
 import psycopg2 as psql
-
-from tkinter import StringVar
-
-from config import ICON_PATH
-from PIL import ImageTk, Image
 from model import Entity, Stuff, Job, Patient, Treatment, Price_list, Visit
 
-from tkcalendar import Calendar, DateEntry
+from tkcalendar import DateEntry
 from datetime import date
 
 font = 'Arial 16'
@@ -22,7 +15,7 @@ from config import config
 
 TK_SILENCE_DEPRECATION=1 
 W, H = 1280, 720
-W_BIAS = 2560
+W_BIAS = 0
 BG = "#79def7"
 BTN_BG = "#3dffc2"
 LBL_BG = "#79def7"
@@ -65,7 +58,6 @@ class MainPage(tk.Frame):
             background=BG,
             command=lambda: self.master.switch_frame(CalcPage),
             highlightbackground=BTN_BG,
-            # font=font,
             height=3,
         )
         calc_button.grid(row=1, column=1, padx=30, pady=30)
@@ -77,7 +69,6 @@ class MainPage(tk.Frame):
             background=BG,
             command=lambda: self.master.switch_frame(InsertVisitPage),
             highlightbackground=BTN_BG,
-            # font=font,
             height=3,
         )
         insert_visit_button.grid(row=1, column=3, padx=30, pady=30)
@@ -330,7 +321,6 @@ class CalcPage(tk.Frame):
         tk.Frame.__init__(self, master, width=W, height=H)
         label = tk.Label(self, text='Рассчет зарплаты сотрудника', font=font)
         label.grid(row=0, column=1, padx=20, pady=20)
-        # tk.Label(self, text='').grid(row=1, column=4,  padx=100, pady=30)
         self.pack()
         self.pack_propagate(0)
         self.master = master

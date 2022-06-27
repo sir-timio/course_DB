@@ -9,9 +9,6 @@ class Entity:
     
     def get_data(self):
         return dict((k, v) for k, v in self.__dict__.items() if v is not None)
-    
-    def get_row(self):
-        return tuple(v for v in self.__dict__.values())
 
 from enum import Enum
 class Job(Entity):
@@ -59,9 +56,9 @@ class Stuff(Entity):
         self.phone = cast(phone, str)
         self.interest_rate = cast(interest_rate, float)
 
-    def get_name(self, job_name: dict):
-        if job_name is not None:
-            return f'{job_name[self.job_id]} {self.name} {self.surname}'
+    def get_name(self, job: dict):
+        if job is not None:
+            return f'{job[self.job_id].name} {self.name} {self.surname}'
         return f'{self.name} {self.surname}'
     def is_doctor(self):
         return self.job_id == 3
@@ -145,13 +142,13 @@ class Treatment (Entity):
 class Price_list(Entity):
     def __init__(
         self,
-        code: int,
+        id: int,
         name: str,
         price: float
     ) -> None:
 
         super().__init__()
-        self.code = int(code)
+        self.id = int(id)
         self.name = str(name)
         self.price = float(price)
     

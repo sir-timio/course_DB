@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import Button, Entry, OptionMenu, ttk, Label, messagebox, StringVar
 from tkinter import font as tkfont
+from matplotlib.pyplot import title
 
 import psycopg2 as psql
 from model import Entity, Stuff, Job, Patient, Treatment, Price_list, Visit
@@ -25,16 +26,14 @@ TITLE = "Clinic"
 class App(tk.Tk):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # tk.Tk.__init__(self, *args, **kwargs)
         self._frame = None
         self.title_font = tkfont.Font(family='Helvetica', size=18, weight="bold", slant="italic")
         self.eval("tk::PlaceWindow . center")
         self.geometry(f"{W}x{H}-{W_BIAS}+0")
         self.configure(background=BG)
+        self.title('MedOK')
         self.focus()
-        # self.switch_frame(MainPage)
-        self.switch_frame(InsertVisitPage)
-
+        self.switch_frame(MainPage)
 
     def switch_frame(self, frame_class):
         new_frame = frame_class(self)
@@ -55,22 +54,17 @@ class MainPage(tk.Frame):
         
         calc_button = tk.Button(
             self, text='калькулятор зарплат',
-            bg=BG,
-            background=BG,
+            bg=BG, background=BG,
             command=lambda: self.master.switch_frame(CalcPage),
-            highlightbackground=BTN_BG,
-            height=3,
+            highlightbackground=BTN_BG, height=3,
         )
         calc_button.grid(row=1, column=1, padx=30, pady=30)
 
-
         insert_visit_button = tk.Button(
             self, text='внести визит',
-            bg=BG,
-            background=BG,
+            bg=BG, background=BG,
             command=lambda: self.master.switch_frame(InsertVisitPage),
-            highlightbackground=BTN_BG,
-            height=3,
+            highlightbackground=BTN_BG, height=3,
         )
         insert_visit_button.grid(row=1, column=3, padx=30, pady=30)
 
@@ -149,16 +143,11 @@ class InsertVisitPage(tk.Frame):
     
     def set_drop_menu_doctor(self):
         stuff = get_table(cls=Stuff)
-        doctors = [s for s in stuff if s.is_doctor()]
-
+        doctors = dict((k, v) for k, v in stuff.items() if v.is_doctor())
         job = get_table(cls=Job)
-        job_name = dict()
-        for j in job:
-            job_name[j.id] = j.name
-        
-        names = [s.get_name(job_name) for s in doctors]
-        ids = [d.id for d in doctors]
-        name_to_id = dict(zip(names, ids))
+
+        names = [s.get_name(job) for s in doctors.values()]
+        name_to_id = dict(zip(names, doctors.keys()))
 
         clicked = StringVar()
         clicked.set('выбор мед. сотрудника')
@@ -178,13 +167,11 @@ class InsertVisitPage(tk.Frame):
     
     def set_drop_menu_patient(self):
         patients = get_table(cls=Patient)
-
-        names = [p.get_name() for p in patients]
-        ids = [p.id for p in patients]
-        name_to_id = dict(zip(names, ids))
+        names = [p.get_name() for p in patients.values()]
+        name_to_id = dict(zip(names, patients.keys()))
         
         
-        clicked = StringVar()
+        clicked = StringVar(self)
         clicked.set('выбор пациента')
 
 
@@ -203,22 +190,17 @@ class InsertVisitPage(tk.Frame):
     
     def insert_visit(self):
         def _insert_visit():
-            
             if len(self.treatment_list) == 0:
-                err = 'Нет ни одной процедуры для визита'
-                messagebox.showerror('Ошибка', err)
+                messagebox.showerror('Ошибка', 'Нет ни одной процедуры для визита')
                 return
             if not self.patient_id:
-                err = 'Внесите пациента'
-                messagebox.showerror('Ошибка', err)
+                messagebox.showerror('Ошибка', 'Внесите пациента')
                 return
             if not self.doctor_id:
-                err = 'Внесите врача'
-                messagebox.showerror('Ошибка', err)
+                messagebox.showerror('Ошибка', 'Внесите врача')
                 return
             if not re.fullmatch(TIME_REGEX, self.time.get()):
-                err = 'Введите корректно время в формате hh:mm:ss'
-                messagebox.showerror('Ошибка', err)
+                messagebox.showerror('Ошибка', 'Введите корректно время в формате hh:mm:ss')
                 return
             visit = Visit(
                 patient_id=self.patient_id,
@@ -251,10 +233,9 @@ class InsertVisitPage(tk.Frame):
                 self.treatment_list[i].visit_id = self.visit_id
             
             for t in self.treatment_list:
-                ok, ex = insert(t)
-                if not ok:
+                ex = insert(t)
+                if ex:
                     return
-            
             messagebox.showinfo('Визит внесен', 'успешно внесен визит')
   
 
@@ -265,9 +246,8 @@ class InsertVisitPage(tk.Frame):
     def set_input_treatment(self):
         
         price_list  = get_table(cls=Price_list)
-        names = [p.name for p in price_list]
-        ids = [p.code for p in price_list]
-        name_to_id = dict(zip(names, ids))
+        names = [p.name for p in price_list.values()]
+        name_to_id = dict(zip(names, price_list.keys()))
 
         def on_select_treatment():
             text = clicked_treatment.get()
@@ -305,19 +285,20 @@ class InsertVisitPage(tk.Frame):
                     Treatment(id=None, visit_id=self.visit_id, code=code, location=l, quantity=q)
                 )
                 label.config(text=text)
-        clicked_treatment = StringVar()
+        
+        clicked_treatment = StringVar(self)
         clicked_treatment.set('выбор процедуры')
 
         drop_treatment = OptionMenu(self, clicked_treatment, *names)
         drop_treatment.grid(row=1, column=3, columnspan=2)
 
-        quantity = StringVar()
+        quantity = StringVar(self)
         quantity.set('1')
         quantity_entry = Entry(self, textvariable=quantity)
         quantity_entry.grid(row=2, column=4, padx=20)
         Label(self, text='количество:').grid(row=2, column=3, sticky='E')
 
-        location = StringVar()
+        location = StringVar(self)
         location.set('1')
         location_entry = Entry(self, textvariable=location)
         location_entry.grid(row=3, column=4)
@@ -368,46 +349,35 @@ class CalcPage(tk.Frame):
     def set_drop_menu(self):
         stuff = get_table(cls=Stuff)
         job = get_table(cls=Job)
-        job_name = dict()
-        job_salary = dict()
-        for j in job:
-            job_name[j.id] = j.name
-            job_salary[j.id] = j.daily_salary
-        
-
-        names = [s.get_name(job_name) for s in stuff]
-        ids = [s.id for s in stuff]
-        name_to_id = dict(zip(names, ids))
-        clicked = StringVar()
+        names = [s.get_name(job) for s in stuff.values()]
+        name_to_id = dict(zip(names, stuff.keys()))
+        clicked = StringVar(self)
         clicked.set('выбор сотрудника')
 
         def on_select(choice):
             text = clicked.get()
             name = text
-            stuff_id = name_to_id.get(name, 0)
-            self.stuff_id = int(stuff_id)
-            st = get_row(Stuff, self.stuff_id)
-            self.salary = job_salary[st.job_id]
+            self.stuff_id = int(name_to_id.get(name))
+            st = stuff.get(self.stuff_id)
+            self.salary = job[st.job_id].daily_salary
             text = f'сотрудник: {name}\nсмена: {self.salary}'
             if st.interest_rate != 0:
                 self.interest_rate = st.interest_rate
                 text += f', {round(self.interest_rate*100, 2)}%'
             
             label.config(text=text)
-
-
         drop = OptionMenu(self, clicked, *names, command=on_select)
         drop.grid(row=1, column=1, padx=10, pady=40)
         label = Label(self, text=' ')
         label.grid(row=2, column=1, padx=10, pady=40)
-    
+
     def set_calc_button(self):
         def calc():
             if (self.stuff_id is None or
                 self.start_date is None or
                 self.end_date is None or
                 self.salary is None):
-                    label.config(text='недостаточно данных для рассчета')
+                    label.config(text='недостаточно данных для расчета')
                     return
 
             query_workdays = f'''select stuff_id, date from stuff_workdays where
@@ -424,13 +394,14 @@ class CalcPage(tk.Frame):
                 conn.rollback()
                 return
             
-            total_salary = days * self.salary
+            base_salary = days * self.salary
+            from_visits = 0
 
             if self.interest_rate != 0:
                 query_visits = f'''
                 select name, price, quantity from visit v
                     inner join treatment tr on tr.visit_id = v.id
-                    inner join price_list p on p.code = tr.code
+                    inner join price_list p on p.id = tr.code
                 where v.doctor_id = {self.stuff_id} and
                     v.date between '{self.start_date}' and '{self.end_date}';
                 '''
@@ -442,17 +413,19 @@ class CalcPage(tk.Frame):
                         rows = cur.fetchall()
                         for row in rows:
                             _, price, quantity = str(row[0]), float(row[1]), int(row[2])
-                            total_salary += price * quantity * self.interest_rate
-                            
+                            from_visits += price * quantity * self.interest_rate                            
                 except Exception as ex:
                     print(f'Cannot select visits: {ex}')
                     conn.rollback()
                     return
-            
-            label.config(text=f'итого: {round(total_salary)}')
+            text = f'итого за смены: {round(base_salary)}'
+            if from_visits:
+                text += f'\nитого за визиты: {round(from_visits)}'
+                text += f'\nитого: {round(base_salary + from_visits)}'
+            label.config(text=text)
 
         label = Label(self, text=' ')
-        button = Button(self, text='рассчет', command=lambda: calc())
+        button = Button(self, text='расчет', command=lambda: calc())
         button.grid(row=6, column=1)
         label.grid(row=7, column=1, pady=10, padx=10)
 
@@ -465,15 +438,15 @@ class CalcPage(tk.Frame):
                 self.end_date = cal.get_date()
 
         label = ttk.Label(self, text=prefix)
-        label.grid(row=3, column=col)
-        cal = DateEntry(self, width=12, background='darkblue',
+        label.grid(row=3, column=col, padx=10)
+        cal = DateEntry(self, width=12, background=BG,
                         year=default_date.year,
                         month=default_date.month,
                         day=default_date.day,
-                        foreground='white', borderwidth=2, )
+                        foreground='black', borderwidth=2)
         cal.grid(row=4, column=col)
         button = tk.Button(self, text='установить', command=lambda: print_date())
-        button.grid(row=5, column=col, pady=5)
+        button.grid(row=5, column=col, pady=5, padx=10)
 
 def get_connection(config=config):
     try:
@@ -495,11 +468,11 @@ def insert(entity: Entity, conn=get_connection()):
         with conn.cursor() as cur:
             cur.execute(query, values)
             conn.commit()
-        return 1, ''
+        return 0
     except Exception as ex:
         conn.rollback()
         print(f"Exeption in insert: {ex} for table {table_name} with entity {entity}")
-        return 0, ex
+        return ex
 
 
 def get_table(cls, conn=get_connection()):
@@ -511,39 +484,16 @@ def get_table(cls, conn=get_connection()):
             conn.commit()
             rows = cur.fetchall()
             entities = [cls(*r) for r in rows]
-            return entities
+            table = dict()
+            for e in entities:
+                table[e.id] = e
+            return table
     except Exception as ex:
         conn.rollback()
         print(f"Exeption select: {ex} for table {table_name}")
         return None
 
-def get_workdays_amount(stuff_id, start_date, end_date, conn=get_connection()):
-    query = f'''select stuff_id, date from stuff_workdays where
-                 stuff_id = {stuff_id} and
-                 date between {start_date} and {end_date}'''
-    try:
-        with conn.cursor() as cur:
-            cur.execute(query)
-            conn.commit();
-            rows = cur.fetchall()
-            return len(rows)
-    except:
-        conn.rollback()
 
-def get_row(cls, id, id_col_name='id', conn=get_connection()):
-    table_name = cls.__name__.lower()
-    query = f'select * from {table_name} where {id_col_name} = {id}'
-    try:
-        with conn.cursor() as cur:
-            cur.execute(query)
-            conn.commit()
-            rows = cur.fetchall()
-            entity = cls(*rows[0])
-            return entity
-    except Exception as ex:
-        conn.rollback()
-        print(f"Exeption get row: {ex} for table {table_name} id: {id}")
-        return None
 
             
 

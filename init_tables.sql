@@ -233,6 +233,7 @@ insert into treatment (visit_id, code) values
     (1, 1),
     (1, 2),
     (1, 3);
+
 insert into treatment (visit_id, code, quantity) values
     (2, 1, 3),
     (2, 2, 2),

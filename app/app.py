@@ -23,6 +23,15 @@ BTN_BG = "#3dffc2"
 LBL_BG = "#79def7"
 TITLE = "Clinic"
 
+def init_db():
+    conn = psql.connect(**config)
+    try:
+        with conn.cursor() as cur:
+            cur.execute(open('init_db.sql', 'r').read())
+            conn.commit()
+    except Exception as ex:
+        print(f'Error in init tables: {ex}')
+
 class App(tk.Tk):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -499,4 +508,5 @@ def get_table(cls, conn=get_connection()):
 
 if __name__ == '__main__':
     app = App()
+    init_db()
     app.mainloop()

@@ -4,7 +4,7 @@ from tkinter import font as tkfont
 from matplotlib.pyplot import title
 
 import psycopg2 as psql
-from model import Entity, Stuff, Job, Patient, Treatment, Price_list, Visit
+from model import Entity, MedicalCart, Stuff, Job, Patient, Treatment, Price_list, Visit
 
 from tkcalendar import DateEntry
 from datetime import date, time
@@ -76,6 +76,15 @@ class MainPage(tk.Frame):
             highlightbackground=BTN_BG, height=3,
         )
         insert_visit_button.grid(row=1, column=3, padx=30, pady=30)
+
+        insert_patient_button = tk.Button(
+            self, text='внести пациента',
+            bg=BG, background=BG,
+            command=lambda: self.master.switch_frame(InsertPatientPage),
+            highlightbackground=BTN_BG, height=3,
+        )
+        insert_patient_button.grid(row=1, column=2, padx=30, pady=30)
+
 
 
 class InsertVisitPage(tk.Frame):
@@ -250,6 +259,214 @@ class InsertVisitPage(tk.Frame):
 
 
         button = Button(self, text='внести визит', command=lambda: _insert_visit())
+        button.grid(row=12, column=2)
+
+    def set_input_treatment(self):
+        
+        price_list  = get_table(cls=Price_list)
+        names = [p.name for p in price_list.values()]
+        name_to_id = dict(zip(names, price_list.keys()))
+
+        def on_select_treatment():
+            text = clicked_treatment.get()
+            name = text
+            code = int(name_to_id.get(name))
+            text = f'добавлено!\nпроцедура: {name}'
+            ok = True
+            if quantity.get() != '':
+                try:
+                    q = int(quantity.get())
+                    if q < 1:
+                        text += '\nнекорректное количество, введите число'
+                        q = None
+                        ok = False
+                    else:
+                        text += f'\nколичество: {q}'
+                except:
+                    ok = False
+                    text += '\nнекорректное количество'
+            if location.get() != '':
+                try:
+                    l = int(location.get())
+                    if 0 < l < 32:
+                        text += f'\nкод зуба: {l}'
+                    else:
+                        l = None
+                        ok = False
+                        text += '\nнекорретный код зуба'
+                except:
+                    l = None
+                    ok = False
+                    text += '\nнекорретный код зуба, введите число'
+            if ok:
+                self.treatment_list.append(
+                    Treatment(id=None, visit_id=self.visit_id, code=code, location=l, quantity=q)
+                )
+                label.config(text=text)
+        
+        clicked_treatment = StringVar(self)
+        clicked_treatment.set('выбор процедуры')
+
+        drop_treatment = OptionMenu(self, clicked_treatment, *names)
+        drop_treatment.grid(row=1, column=3, columnspan=2)
+
+        quantity = StringVar(self)
+        quantity.set('1')
+        quantity_entry = Entry(self, textvariable=quantity)
+        quantity_entry.grid(row=2, column=4, padx=20)
+        Label(self, text='количество:').grid(row=2, column=3, sticky='E')
+
+        location = StringVar(self)
+        location.set('1')
+        location_entry = Entry(self, textvariable=location)
+        location_entry.grid(row=3, column=4)
+        Label(self, text='код зуба:').grid(row=3, column=3, sticky='E')
+    
+        button = Button(self, text='добавить', command=lambda: on_select_treatment())
+        button.grid(row=4, column=4)
+        label = Label(self, text=' ')
+        label.grid(row=5, column=4)
+
+
+class InsertPatientPage(tk.Frame):
+    def __init__(self, master):
+            tk.Frame.__init__(self, master, width=W, height=H)
+            label = tk.Label(self, text='Внести пациента', font=font)
+            label.grid(row=0, column=2, padx=20, pady=20)
+            tk.Label(self, text='').grid(row=0, column=4,  padx=100, pady=10)
+            self.pack()
+            self.pack_propagate(0)
+            self.master = master
+
+            self.set_go_menu()
+            self.set_input(
+                ['name', 'surname', 'phone'],
+                ['имя', 'фамилия', 'телефон'],
+                row=2,
+                col=0
+            )
+            self.set_input(
+                ['allergy', 'diseases', 'medicines'],
+                ['аллергия', 'хронические заболевания',
+                    'принимаемые препараты'],
+                col=2,
+                row=2
+            )
+            self.set_drop_input(
+                ['sex', 'blood_type'],
+                ['пол', 'группа крови'],
+                [
+                    ['M', 'F'],
+                    ['O+', 'O-', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-']
+                ],
+                col=3,
+                row=5
+            )
+            self.insert_patient()
+            self.set_bdate_input(col=1, row=5, prefix='дата рождения: ')
+
+
+    def set_drop_input(self, fields, names, options, row=5, col=2):
+        for i, t in enumerate(zip(fields, names, options)):
+            field, name, ops = t
+            self.__dict__[field] = StringVar()
+            drop = OptionMenu(self, self.__dict__[field], *ops)
+            self.__dict__[field].set(name)
+            drop.grid(row=row+i, column=col)
+
+    def set_input(self, fields, names, row=5, col=0):
+        for i, t in enumerate(zip(fields, names)):
+            field, name = t
+            self.__dict__[field] = StringVar()
+            Label(self, text=f'{name}:').grid(row=row+i, column=col, sticky='E')
+            entry = Entry(self, textvariable=self.__dict__[field])
+            entry.grid(row=row+i, column=col+1)
+
+    def set_go_menu(self):
+            go_main_button = tk.Button(
+                self, text='в главное меню',
+                bg=BG,
+                background=BG,
+                command=lambda: self.master.switch_frame(MainPage),
+                highlightbackground=BTN_BG,
+                font=font,
+                height=3,
+            )
+            go_main_button.grid(row=15, column=0, sticky='W', pady=20, padx=20)
+    
+    def set_bdate_input(self, col, row, prefix, default_date=date.today()):
+        def set_date():
+            self.birth_date = str(cal.get_date())
+            label.config(text=f'выбрано: {cal.get_date()}')
+
+        label = ttk.Label(self, text=prefix)
+        label.grid(row=row, column=col)
+        cal = DateEntry(self, width=12, background='white',
+                        year=default_date.year,
+                        month=default_date.month,
+                        day=default_date.day,
+                        foreground='white', borderwidth=2, )
+        cal.grid(row=row+1, column=col)
+        button = tk.Button(self, text='установить', command=lambda: set_date())
+        button.grid(row=row+2, column=col)
+    
+    def insert_patient(self):
+        def _insert():
+            patient = Patient(
+                id=None,
+                name=self.name.get(),
+                surname=self.surname.get(),
+                phone=self.phone.get(),
+            )
+
+            medical_cart = MedicalCart(
+                id=None,
+                sex=self.sex.get(),
+                blood_type=self.blood_type.get(),
+                birth_date=self.birth_date,
+                allergy=self.allergy.get(),
+                diseases=self.diseases.get(),
+                medicines=self.medicines.get(),
+            )
+            
+            query = 'insert into patient'
+            d = patient.get_data()
+            fields = d.keys()
+            values = list(d.values())
+            query += ' (' + ', '.join(fields) + ')'
+            query += ' values (' + ', '.join(['%s'] * len(values)) + ')'
+            query += ' returning id;'
+            conn = get_connection()
+            try:
+                with conn.cursor() as cur:
+                    cur.execute(query, values)
+                    conn.commit()
+                    res = cur.fetchall()
+                    self.id = int(res[0][0])
+
+                    medical_cart.id = self.id
+                    query = 'insert into medical_card'
+                    d = medical_cart.get_data()
+                    fields = d.keys()
+                    values = list(d.values())
+                    query += ' (' + ', '.join(fields) + ')'
+                    query += ' values (' + ', '.join(['%s'] * len(values)) + ')'
+
+                    print(query)
+                    print(values)
+                    cur.execute(query, values)
+                    conn.commit()
+            except Exception as ex:
+                conn.rollback()
+                print(f'Exception {ex} inserting patient')
+                messagebox.showerror('ошибка', ex)
+                return
+ 
+            messagebox.showinfo('Пациент внесен', 'успешно внесен пациент')
+  
+
+
+        button = Button(self, text='внести пациента', command=lambda: _insert())
         button.grid(row=12, column=2)
 
     def set_input_treatment(self):

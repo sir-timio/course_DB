@@ -112,9 +112,17 @@ insert into stuff_workdays(stuff_id, date)
 select 6, * from generate_series('2022-06-02'::date, '2022-06-23'::date, '2 day'::interval);
 commit;
 
+create table patient(
+    id              serial          primary key,
+    name            varchar(50)     not null,
+    surname         varchar(50)     null,
+    phone           varchar(15)     not null,
+    unique(phone)
+);
+
 
 create table medical_card(
-    id              int             primary key,
+    id              int             primary key references patient,
     sex             char(1)         not null check (sex in ('M', 'F')),
     blood_type      nchar(3)        not null check (blood_type in (
                                                                 'O+', 'O-', 
@@ -128,31 +136,21 @@ create table medical_card(
 );
 
 
-create table patient(
-    id              int             primary key,
-    name            varchar(50)     not null,
-    surname         varchar(50)     null,
-    phone           varchar(15)     not null,
-    unique(phone)
-);
+-- alter table medical_card
+--         add foreign key(id) references patient (id)
+--             DEFERRABLE INITIALLY DEFERRED;
 
-
-alter table medical_card
-        add foreign key(id) references patient (id)
-            DEFERRABLE INITIALLY DEFERRED;
-
-alter table patient
-        add foreign key(id) references medical_card (id)
-            DEFERRABLE INITIALLY DEFERRED;
-commit;
+-- alter table patient
+--         add foreign key(id) references medical_card (id)
+--             DEFERRABLE INITIALLY DEFERRED;
+-- commit;
 
 -- patients and med cards
-insert into patient (id, name, phone) values 
-        (1, 'Павел', '89634386237'),
-        (2, 'Валерия', '89333162239'),
-        (3, 'Степан', '89635289217');
-insert into patient values
-        (4, 'Виктор', 'Викторов', '89638260230');
+insert into patient (name, surname, phone) values 
+        ('Павел', 'Гончаров', '89634386237'),
+        ('Валерия', 'Жданова', '89333162239'),
+        ('Степан', 'Фролов', '89635289217'),
+        ('Виктор', 'Викторов', '89638260230');
 
 insert into medical_card values 
         (1, 'M', 'O+', '2001-02-10'),

@@ -102,6 +102,7 @@ class Visit(Entity):
         self.room = cast(room, int)
         self.receipt = cast(receipt, str)
 
+
 class Patient(Entity):
     def __init__(
         self,
@@ -112,14 +113,35 @@ class Patient(Entity):
     ) -> None:
 
         super().__init__()
-        self.id = int(id)
-        self.name = str(name)
-        self.surname = str(surname) if surname is not None else ''
-        self.phone = str(phone) if phone is not None else ''
+        self.id = cast(id, int)
+        self.name = cast(name, str)
+        self.surname = cast(surname, str)
+        self.phone = cast(phone, str)
 
     def get_name(self):
         return f'{self.name}{" " * bool(len(self.surname) > 0) + self.surname}'
     
+
+class MedicalCart(Entity):
+    def __init__(
+        self,
+        id: int,
+        sex: str,
+        blood_type: str,
+        birth_date: str,
+        allergy: str,
+        diseases: str,
+        medicines: str,
+    ) -> None:
+        super().__init__()
+        self.id = cast(id, int)
+        self.sex = cast(sex, str)
+        self.blood_type = cast(blood_type, str)
+        self.birth_date = cast(birth_date, str)
+        self.allergy = cast(allergy, str)
+        self.diseases = cast(diseases, str)
+        self.medicines = cast(medicines, str)
+
 
 class Treatment (Entity):
     def __init__(

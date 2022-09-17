@@ -1,19 +1,18 @@
 import tkinter as tk
 from tkinter import Button, Entry, OptionMenu, ttk, Label, messagebox, StringVar
 from tkinter import font as tkfont
-from matplotlib.pyplot import title
 
 import psycopg2 as psql
 from model import Entity, MedicalCart, Stuff, Job, Patient, Treatment, Price_list, Visit
 
 from tkcalendar import DateEntry
 from datetime import date, time
-font = 'Arial 16'
-
-import re
-TIME_REGEX = '^([0-1]?[0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$'
 
 from config import config
+
+FONT = 'Arial 16'
+
+TIME_REGEX = '^([0-1]?[0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$'
 
 TK_SILENCE_DEPRECATION=1 
 W, H = 1280, 720
@@ -22,7 +21,6 @@ BG = "#79def7"
 BTN_BG = "#3dffc2"
 LBL_BG = "#79def7"
 TITLE = "Clinic"
-
 def init_db():
     conn = psql.connect(**config)
     try:
@@ -31,6 +29,14 @@ def init_db():
             conn.commit()
     except Exception as ex:
         print(f'Error in init tables: {ex}')
+
+
+    
+##################################################
+#                                                #
+#               App                              # 
+#                                                #
+##################################################
 
 class App(tk.Tk):
     def __init__(self, *args, **kwargs):
@@ -52,30 +58,27 @@ class App(tk.Tk):
         self._frame.pack_propagate(0)
         self._frame.pack()
     
-
+    
+##################################################
+#                                                #
+#               Main Page                        # 
+#                                                #
+##################################################
 
 class MainPage(tk.Frame):
     def __init__(self, master):
         tk.Frame.__init__(self, master)
         self.master = master
         label = tk.Label(self, text='Главная страница', bg=LBL_BG)
-        label.grid(row=0, column=2, pady=30, padx=30)
+        label.grid(row=0, column=1, pady=30, padx=30)
         
-        calc_button = tk.Button(
-            self, text='калькулятор зарплат',
+        insert_stuff_button = tk.Button(
+            self, text='внести сотрудника',
             bg=BG, background=BG,
-            command=lambda: self.master.switch_frame(CalcPage),
+            command=lambda: self.master.switch_frame(InsertPatientPage),
             highlightbackground=BTN_BG, height=3,
         )
-        calc_button.grid(row=1, column=1, padx=30, pady=30)
-
-        insert_visit_button = tk.Button(
-            self, text='внести визит',
-            bg=BG, background=BG,
-            command=lambda: self.master.switch_frame(InsertVisitPage),
-            highlightbackground=BTN_BG, height=3,
-        )
-        insert_visit_button.grid(row=1, column=3, padx=30, pady=30)
+        insert_stuff_button.grid(row=1, column=0, padx=30, pady=30)
 
         insert_patient_button = tk.Button(
             self, text='внести пациента',
@@ -83,14 +86,37 @@ class MainPage(tk.Frame):
             command=lambda: self.master.switch_frame(InsertPatientPage),
             highlightbackground=BTN_BG, height=3,
         )
-        insert_patient_button.grid(row=1, column=2, padx=30, pady=30)
+        insert_patient_button.grid(row=1, column=1, padx=30, pady=30)
+
+        calc_button = tk.Button(
+            self, text='калькулятор зарплат',
+            bg=BG, background=BG,
+            command=lambda: self.master.switch_frame(CalcPage),
+            highlightbackground=BTN_BG, height=3,
+        )
+        calc_button.grid(row=2, column=1, padx=30, pady=30)
+
+        insert_visit_button = tk.Button(
+            self, text='внести визит',
+            bg=BG, background=BG,
+            command=lambda: self.master.switch_frame(InsertVisitPage),
+            highlightbackground=BTN_BG, height=3,
+        )
+        insert_visit_button.grid(row=1, column=2, padx=30, pady=30)
 
 
+
+    
+##################################################
+#                                                #
+#               Visit Page                       # 
+#                                                #
+##################################################
 
 class InsertVisitPage(tk.Frame):
     def __init__(self, master):
             tk.Frame.__init__(self, master, width=W, height=H)
-            label = tk.Label(self, text='Внести визит', font=font)
+            label = tk.Label(self, text='Внести визит', font=FONT)
             label.grid(row=0, column=2, padx=20, pady=20)
             tk.Label(self, text='').grid(row=0, column=4,  padx=100, pady=10)
             self.pack()
@@ -138,7 +164,7 @@ class InsertVisitPage(tk.Frame):
                 background=BG,
                 command=lambda: self.master.switch_frame(MainPage),
                 highlightbackground=BTN_BG,
-                font=font,
+                font=FONT,
                 height=3,
             )
             go_main_button.grid(row=15, column=0, sticky='W', pady=20, padx=20)
@@ -327,11 +353,17 @@ class InsertVisitPage(tk.Frame):
         label = Label(self, text=' ')
         label.grid(row=5, column=4)
 
+    
+##################################################
+#                                                #
+#               Patient Page                     # 
+#                                                #
+##################################################
 
 class InsertPatientPage(tk.Frame):
     def __init__(self, master):
             tk.Frame.__init__(self, master, width=W, height=H)
-            label = tk.Label(self, text='Внести пациента', font=font)
+            label = tk.Label(self, text='Внести пациента', font=FONT)
             label.grid(row=0, column=2, padx=20, pady=20)
             tk.Label(self, text='').grid(row=0, column=4,  padx=100, pady=10)
             self.pack()
@@ -389,7 +421,7 @@ class InsertPatientPage(tk.Frame):
                 background=BG,
                 command=lambda: self.master.switch_frame(MainPage),
                 highlightbackground=BTN_BG,
-                font=font,
+                font=FONT,
                 height=3,
             )
             go_main_button.grid(row=15, column=0, sticky='W', pady=20, padx=20)
@@ -469,76 +501,17 @@ class InsertPatientPage(tk.Frame):
         button = Button(self, text='внести пациента', command=lambda: _insert())
         button.grid(row=12, column=2)
 
-    def set_input_treatment(self):
-        
-        price_list  = get_table(cls=Price_list)
-        names = [p.name for p in price_list.values()]
-        name_to_id = dict(zip(names, price_list.keys()))
-
-        def on_select_treatment():
-            text = clicked_treatment.get()
-            name = text
-            code = int(name_to_id.get(name))
-            text = f'добавлено!\nпроцедура: {name}'
-            ok = True
-            if quantity.get() != '':
-                try:
-                    q = int(quantity.get())
-                    if q < 1:
-                        text += '\nнекорректное количество, введите число'
-                        q = None
-                        ok = False
-                    else:
-                        text += f'\nколичество: {q}'
-                except:
-                    ok = False
-                    text += '\nнекорректное количество'
-            if location.get() != '':
-                try:
-                    l = int(location.get())
-                    if 0 < l < 32:
-                        text += f'\nкод зуба: {l}'
-                    else:
-                        l = None
-                        ok = False
-                        text += '\nнекорретный код зуба'
-                except:
-                    l = None
-                    ok = False
-                    text += '\nнекорретный код зуба, введите число'
-            if ok:
-                self.treatment_list.append(
-                    Treatment(id=None, visit_id=self.visit_id, code=code, location=l, quantity=q)
-                )
-                label.config(text=text)
-        
-        clicked_treatment = StringVar(self)
-        clicked_treatment.set('выбор процедуры')
-
-        drop_treatment = OptionMenu(self, clicked_treatment, *names)
-        drop_treatment.grid(row=1, column=3, columnspan=2)
-
-        quantity = StringVar(self)
-        quantity.set('1')
-        quantity_entry = Entry(self, textvariable=quantity)
-        quantity_entry.grid(row=2, column=4, padx=20)
-        Label(self, text='количество:').grid(row=2, column=3, sticky='E')
-
-        location = StringVar(self)
-        location.set('1')
-        location_entry = Entry(self, textvariable=location)
-        location_entry.grid(row=3, column=4)
-        Label(self, text='код зуба:').grid(row=3, column=3, sticky='E')
     
-        button = Button(self, text='добавить', command=lambda: on_select_treatment())
-        button.grid(row=4, column=4)
-        label = Label(self, text=' ')
-        label.grid(row=5, column=4)
+##################################################
+#                                                #
+#               Calculator Page                  # 
+#                                                #
+##################################################
 
 class CalcPage(tk.Frame):
     def __init__(self, master):
         tk.Frame.__init__(self, master, width=W, height=H)
-        label = tk.Label(self, text='Рассчет зарплаты сотрудника', font=font)
+        label = tk.Label(self, text='Рассчет зарплаты сотрудника', font=FONT)
         label.grid(row=0, column=1, padx=20, pady=20)
         self.pack()
         self.pack_propagate(0)
@@ -567,7 +540,7 @@ class CalcPage(tk.Frame):
             background=BG,
             command=lambda: self.master.switch_frame(MainPage),
             highlightbackground=BTN_BG,
-            font=font,
+            font=FONT,
             height=3,
         )
         go_main_button.grid(row=10, column=0, pady=20, padx=30)

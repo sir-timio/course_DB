@@ -116,7 +116,7 @@ create table patient(
     id              serial          primary key,
     name            varchar(50)     not null,
     surname         varchar(50)     null,
-    phone           varchar(15)     not null,
+    phone           varchar(20)     not null,
     unique(phone)
 );
 

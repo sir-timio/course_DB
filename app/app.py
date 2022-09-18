@@ -7,12 +7,13 @@ from model import Entity, MedicalCart, Stuff, Job, Patient, Treatment, Price_lis
 
 from tkcalendar import DateEntry
 from datetime import date, time
-
+import re
 from config import config
 
 FONT = 'Arial 16'
 
 TIME_REGEX = '^([0-1]?[0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$'
+PHONE_REGEX = '^(\+7|7|8)?[\s\-]?\(?[489][0-9]{2}\)?[\s\-]?[0-9]{3}[\s\-]?[0-9]{2}[\s\-]?[0-9]{2}$'
 
 TK_SILENCE_DEPRECATION=1 
 W, H = 1280, 720
@@ -157,6 +158,7 @@ class InsertVisitPage(tk.Frame):
         time_entry = Entry(self, textvariable=self.time)
         time_entry.grid(row=10, column=1)
         Label(self, text='время начала приема:').grid(row=10, column=0, sticky='E', pady=15)
+        
     def set_go_menu(self):
             go_main_button = tk.Button(
                 self, text='в главное меню',
@@ -364,8 +366,7 @@ class InsertPatientPage(tk.Frame):
     def __init__(self, master):
             tk.Frame.__init__(self, master, width=W, height=H)
             label = tk.Label(self, text='Внести пациента', font=FONT)
-            label.grid(row=0, column=2, padx=20, pady=20)
-            tk.Label(self, text='').grid(row=0, column=4,  padx=100, pady=10)
+            label.grid(row=0, column=1, padx=20, pady=20)
             self.pack()
             self.pack_propagate(0)
             self.master = master
@@ -373,7 +374,8 @@ class InsertPatientPage(tk.Frame):
             self.set_go_menu()
             self.set_input(
                 ['name', 'surname', 'phone'],
-                ['имя', 'фамилия', 'телефон'],
+                ['имя', 'фамилия', 'номер телефона'],
+                ['Иван', 'Иванов', '+7(963)610-20-30'],
                 row=2,
                 col=0
             )
@@ -391,6 +393,7 @@ class InsertPatientPage(tk.Frame):
                     ['M', 'F'],
                     ['O+', 'O-', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-']
                 ],
+
                 col=3,
                 row=5
             )
@@ -406,10 +409,14 @@ class InsertPatientPage(tk.Frame):
             self.__dict__[field].set(name)
             drop.grid(row=row+i, column=col)
 
-    def set_input(self, fields, names, row=5, col=0):
-        for i, t in enumerate(zip(fields, names)):
-            field, name = t
+    def set_input(self, fields, names, dummies=None, row=5, col=0):
+        if dummies is None:
+            dummies = [''] * len(names)
+        for i, t in enumerate(zip(fields, names, dummies)):
+            field, name, dummy = t
+
             self.__dict__[field] = StringVar()
+            self.__dict__[field].set(dummy)
             Label(self, text=f'{name}:').grid(row=row+i, column=col, sticky='E')
             entry = Entry(self, textvariable=self.__dict__[field])
             entry.grid(row=row+i, column=col+1)
@@ -424,7 +431,7 @@ class InsertPatientPage(tk.Frame):
                 font=FONT,
                 height=3,
             )
-            go_main_button.grid(row=15, column=0, sticky='W', pady=20, padx=20)
+            go_main_button.grid(row=15, column=0, sticky='W')
     
     def set_bdate_input(self, col, row, prefix, default_date=date.today()):
         def set_date():
@@ -450,6 +457,10 @@ class InsertPatientPage(tk.Frame):
                 surname=self.surname.get(),
                 phone=self.phone.get(),
             )
+
+            if not re.fullmatch(PHONE_REGEX, self.phone.get()):
+                messagebox.showerror('Ошибка', 'Введите корректный номер телефона')
+                return
 
             medical_cart = MedicalCart(
                 id=None,
@@ -495,8 +506,6 @@ class InsertPatientPage(tk.Frame):
                 return
  
             messagebox.showinfo('Пациент внесен', 'успешно внесен пациент')
-  
-
 
         button = Button(self, text='внести пациента', command=lambda: _insert())
         button.grid(row=12, column=2)

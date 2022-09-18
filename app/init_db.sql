@@ -29,10 +29,10 @@ commit;
 
 
 create table stuff(
-    id             int          primary key,
+    id             serial       primary key,
     name           varchar(50)  not null,
     surname        varchar(50)  not null,
-    phone          varchar(15)  not null,
+    phone          varchar(20)  not null,
     job_id         int          not null,
     license        varchar(50)  null,
     interest_rate  real         not null default 0 check (interest_rate between 0 and 1),
@@ -43,21 +43,21 @@ create table stuff(
 commit;
 
 -- administrators
-insert into stuff (id, name, surname, job_id, phone) values
-        (1, 'Саша', 'Доля', 1, '89637458777'),
-        (2, 'Маша', 'Флоря', 1, '89637398777');
+insert into stuff (name, surname, job_id, phone) values
+        ('Саша', 'Доля', 1, '89637458777'),
+        ('Маша', 'Флоря', 1, '89637398777');
 commit;
 
 --nurses
-insert into stuff (id, name, surname, job_id, license, phone) values
-        (3, 'Оля', 'Орлова', 2, 'N412-232', '89633268237'),
-        (4, 'Ксения', 'Фролова', 2, 'N412-664', '89698798745');
+insert into stuff (name, surname, job_id, license, phone) values
+        ('Оля', 'Орлова', 2, 'N412-232', '89633268237'),
+        ('Ксения', 'Фролова', 2, 'N412-664', '89698798745');
 commit;
 
 --doctors
-insert into stuff (id, name, surname, job_id, license, phone, interest_rate) values
-        (5, 'Иван', 'Сергев', 3, 'DOC123-5123', '89633258777', 0.4),
-        (6, 'Арина', 'Жук', 3, 'DOC123-4124', '89617391777', 0.45);
+insert into stuff (name, surname, job_id, license, phone, interest_rate) values
+        ('Сергей', 'Жуков', 3, 'DOC123-5123', '89633258777', 0.4),
+        ('Арина', 'Жук', 3, 'DOC123-4124', '89617391777', 0.45);
 commit;
 
 create table stuff_workdays(
@@ -161,7 +161,7 @@ commit;
 
 
 create table price_list(
-    code        int             primary key,
+    id          int             primary key,
     name        varchar(255)    not null,
     price       numeric         not null check (price > 0),
     unique(name)
@@ -203,12 +203,12 @@ create trigger check_stuff before insert or update on visit
 
 
 create table treatment(
-    id          serial          primary key,
-    visit_id    int             not null,
-    code        int             not null,
-    location    smallint        null check (location between 0 and 32),
-    quantity    smallint        not null default 1 check (quantity > 0),
-    foreign key (code) references price_list(code),
+    id            serial          primary key,
+    visit_id      int             not null,
+    price_list_id int             not null,
+    location      smallint        null check (location between 0 and 32),
+    quantity      smallint        not null default 1 check (quantity > 0),
+    foreign key (price_list_id) references price_list(id),
     foreign key (visit_id) references visit(id)
 );
 commit;
@@ -227,12 +227,12 @@ insert into visit(patient_id, doctor_id, date) values
         (1, 6, '2022-06-04');
 commit;
 
-insert into treatment (visit_id, code) values
+insert into treatment (visit_id, price_list_id) values
     (1, 1),
     (1, 2),
     (1, 3);
 
-insert into treatment (visit_id, code, quantity) values
+insert into treatment (visit_id, price_list_id, quantity) values
     (2, 1, 3),
     (2, 2, 2),
     (3, 1, 2),

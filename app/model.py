@@ -24,6 +24,9 @@ class Job(Entity):
         self.daily_salary = cast(daily_salary, float)
         self.name = cast(job_name, str)
     
+    def get_name(self):
+        return self.name
+    
 class Specialization(Enum):
     ORTHODONTIST = 1
     THERAPIST = 2
@@ -56,7 +59,7 @@ class Stuff(Entity):
         self.phone = cast(phone, str)
         self.interest_rate = cast(interest_rate, float)
 
-    def get_name(self, job: dict):
+    def get_name(self, job: dict = None):
         if job is not None:
             return f'{job[self.job_id].name} {self.name} {self.surname}'
         return f'{self.name} {self.surname}'
@@ -148,18 +151,48 @@ class Treatment (Entity):
         self,
         id: int,
         visit_id: int,
-        code: int,
+        price_list_id: int,
         location: int,
         quantity: int,
     ) -> None:
 
         super().__init__()
-        self.id = int(id) if id is not None else None
-        self.visit_id = int(visit_id) if visit_id is not None else None
-        self.code = int(code)
-        self.location = int(location)
-        self.quantity = int(quantity)
+        self.id = cast(id, int) 
+        self.visit_id = cast(visit_id, int)
+        self.price_list_id = cast(price_list_id, int)
+        self.location = cast(location, int)
+        self.quantity = cast(quantity, int)
 
+class Workdays(Entity):
+    def __init__(
+        self,
+        stuff_id: int,
+        date: str,
+        id: int = None,
+    )-> None:
+
+        super().__init__()
+        self.id = cast(id, int)
+        self.stuff_id = cast(stuff_id, int)
+        self.date = cast(date, str)
+    
+    def get_day_code(self, s):
+        if s == 'пн':
+            return '1'
+        elif s == 'вт':
+            return '2'
+        elif s == 'ср':
+            return '3'
+        elif s == 'чт':
+            return '4'
+        elif s == 'пт':
+            return '5'
+        elif s == 'сб':
+            return '6'
+        elif s == 'вс':
+            return '0'
+        else:
+            raise('Unknown weekdate')
 
 class Price_list(Entity):
     def __init__(
